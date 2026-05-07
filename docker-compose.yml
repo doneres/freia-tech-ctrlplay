@@ -37,8 +37,6 @@ services:
     container_name: feiratech-frontend
     depends_on:
       - backend
-    environment:
-      - VITE_API_URL=http://localhost:8081/api
     ports:
       - "5173:5173"
     volumes:

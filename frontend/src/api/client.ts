@@ -1,7 +1,14 @@
 import axios from 'axios';
 
+// VITE_API_URL sobrescreve (útil em dev local).
+// Sem ela, usa o mesmo hostname que o browser usou para acessar o frontend,
+// com a porta do backend — funciona em qualquer servidor sem reconfigurar.
+const baseURL =
+  import.meta.env.VITE_API_URL ||
+  `http://${window.location.hostname}:8081/api`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api',
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
 });
 
