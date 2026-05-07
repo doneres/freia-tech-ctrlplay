@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\douglas\\\\Documents\\\\dev\\\\20 - Projetos Pessoais\\\\feira-tech\" -Recurse)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)",
+      "Bash(npx tsc *)",
+      "Bash(netstat -tln)",
+      "Bash(npm run *)",
+      "Bash(fuser -k 5174/tcp)",
+      "Bash(docker-compose up *)"
+    ]
+  }
+}
