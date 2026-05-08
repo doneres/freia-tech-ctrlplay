@@ -123,7 +123,7 @@ export default function EstoquePage() {
   const [editando, setEditando] = useState<ItemEstoque | null>(null);
   const [form, setForm] = useState<ItemEstoqueRequest>(emptyForm);
 
-  const isAdmin = user?.perfil === 'ADMINISTRADOR';
+  const isAdmin = user?.perfil === 'ADMINISTRADOR' || user?.perfil === 'COORDENACAO' || user?.perfil === 'MONITOR';
 
   const { data: itens = [], isLoading } = useQuery<ItemEstoque[]>({
     queryKey: ['estoque', { tipo: tipoFiltro || undefined, search: search || undefined, apenasAtivos }],

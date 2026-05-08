@@ -1,4 +1,4 @@
-export type PerfilUsuario = 'ADMINISTRADOR' | 'INSTRUTOR' | 'COORDENACAO';
+export type PerfilUsuario = 'ADMINISTRADOR' | 'INSTRUTOR' | 'COORDENACAO' | 'MONITOR';
 export type TipoProjeto = 'HARDWARE' | 'SOFTWARE';
 export type TipoItemEstoque = 'HARDWARE' | 'SOFTWARE' | 'PERIFERICO' | 'PAPELARIA';
 

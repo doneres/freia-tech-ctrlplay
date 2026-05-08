@@ -28,6 +28,7 @@ export default function App() {
               <Route index element={<DashboardPage />} />
               <Route path="projetos" element={<ProjetosPage />} />
               <Route path="projetos/novo" element={<NovoProjetoPage />} />
+              <Route path="projetos/:id/editar" element={<NovoProjetoPage />} />
               <Route path="projetos/:id" element={<ProjetoDetailPage />} />
               <Route path="usuarios" element={<UsuariosPage />} />
               <Route path="estoque" element={<EstoquePage />} />

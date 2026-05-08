@@ -19,6 +19,8 @@ export default function Sidebar() {
   const navigate = useNavigate();
 
   const canManageUsers = user?.perfil === "ADMINISTRADOR";
+  const canManageEstoque = user?.perfil === "ADMINISTRADOR" || user?.perfil === "COORDENACAO" || user?.perfil === "MONITOR";
+  const canManageFerramentas = user?.perfil === "ADMINISTRADOR";
 
   function handleSignOut() {
     signOut();
@@ -59,33 +61,37 @@ export default function Sidebar() {
           </NavLink>
         ))}
 
-        <NavLink
-          to="/estoque"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive
-                ? "bg-brand-600 text-white"
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
-            }`
-          }
-        >
-          <Package size={18} />
-          Estoque
-        </NavLink>
+        {canManageEstoque && (
+          <NavLink
+            to="/estoque"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-brand-600 text-white"
+                  : "text-gray-400 hover:text-white hover:bg-gray-800"
+              }`
+            }
+          >
+            <Package size={18} />
+            Estoque
+          </NavLink>
+        )}
 
-        <NavLink
-          to="/ferramentas"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive
-                ? "bg-brand-600 text-white"
-                : "text-gray-400 hover:text-white hover:bg-gray-800"
-            }`
-          }
-        >
-          <Code2 size={18} />
-          Ferramentas
-        </NavLink>
+        {canManageFerramentas && (
+          <NavLink
+            to="/ferramentas"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-brand-600 text-white"
+                  : "text-gray-400 hover:text-white hover:bg-gray-800"
+              }`
+            }
+          >
+            <Code2 size={18} />
+            Ferramentas
+          </NavLink>
+        )}
 
         {canManageUsers && (
           <NavLink

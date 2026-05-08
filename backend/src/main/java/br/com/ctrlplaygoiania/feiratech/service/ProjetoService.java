@@ -100,6 +100,12 @@ public class ProjetoService {
                     "Projeto com status " + projeto.getStatusProjeto() + " não pode ser editado");
         }
 
+        // Projeto reprovado volta a RASCUNHO ao ser editado para poder ser submetido novamente
+        if (projeto.getStatusProjeto() == StatusProjeto.REPROVADO) {
+            projeto.setStatusProjeto(StatusProjeto.RASCUNHO);
+            projeto.setJustificativaReprovacao(null);
+        }
+
         mapRequestToProjeto(dto, projeto);
         projeto.setInstrutor(buscarInstrutor(dto.getInstrutorId()));
 
@@ -123,8 +129,9 @@ public class ProjetoService {
     public ProjetoDTO.Response submeter(UUID id) {
         Projeto projeto = buscarEntidadePorId(id);
 
-        if (projeto.getStatusProjeto() != StatusProjeto.RASCUNHO) {
-            throw new BusinessException("Apenas projetos em RASCUNHO podem ser submetidos");
+        if (projeto.getStatusProjeto() != StatusProjeto.RASCUNHO
+                && projeto.getStatusProjeto() != StatusProjeto.REPROVADO) {
+            throw new BusinessException("Apenas projetos em RASCUNHO ou REPROVADO podem ser submetidos");
         }
         if (projeto.getNomeProjeto() == null || projeto.getNomeProjeto().isBlank()) {
             throw new BusinessException("Nome do projeto é obrigatório para submeter");

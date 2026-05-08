@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Loader2, CheckCircle, XCircle, Send, Trash2,
   ShoppingCart, X, Plus, Package, Cpu, Code2, Gamepad2, Paperclip,
-  Search, ExternalLink,
+  Search, ExternalLink, Pencil,
 } from 'lucide-react';
 import {
   buscarProjeto, submeterProjeto, aprovarProjeto, reprovarProjeto,
@@ -129,6 +129,10 @@ export default function ProjetoDetailPage() {
     (user?.perfil === 'INSTRUTOR' &&
       projeto?.instrutor?.id === user?.id &&
       projeto?.statusProjeto === 'RASCUNHO');
+  const canEdit =
+    (user?.perfil === 'ADMINISTRADOR' ||
+      (user?.perfil === 'INSTRUTOR' && projeto?.instrutor?.id === user?.id)) &&
+    (projeto?.statusProjeto === 'RASCUNHO' || projeto?.statusProjeto === 'REPROVADO');
 
   if (isLoading || !projeto) {
     return (
@@ -169,7 +173,13 @@ export default function ProjetoDetailPage() {
             </p>
           </div>
           <div className="flex gap-2 shrink-0">
-            {canManage && projeto.statusProjeto === 'RASCUNHO' && (
+            {canEdit && (
+              <button onClick={() => navigate(`/projetos/${id}/editar`)}
+                className="flex items-center gap-1.5 border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-medium px-3 py-2 rounded-lg">
+                <Pencil size={14} /> Editar
+              </button>
+            )}
+            {canManage && (projeto.statusProjeto === 'RASCUNHO' || projeto.statusProjeto === 'REPROVADO') && (
               <button onClick={() => mutSubmeter.mutate()} disabled={mutSubmeter.isPending}
                 className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium px-3 py-2 rounded-lg">
                 <Send size={14} /> Submeter
@@ -255,9 +265,13 @@ export default function ProjetoDetailPage() {
       {/* Reprovar projeto modal */}
       {showReprovacaoModal && (
         <Modal title="Reprovar projeto" onClose={() => setShowReprovacaoModal(false)}>
-          <textarea rows={4} placeholder="Descreva o motivo..." value={justificativaReprovacao}
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Motivo da reprovação <span className="text-red-500">*</span>
+          </label>
+          <textarea rows={4} placeholder="Descreva o motivo da reprovação..." value={justificativaReprovacao}
             onChange={(e) => setJustificativaReprovacao(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+          <p className="text-xs text-gray-400 mt-1">Obrigatório — o instrutor receberá este motivo por e-mail.</p>
           <div className="flex gap-3 mt-4">
             <button onClick={() => setShowReprovacaoModal(false)}
               className="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg hover:bg-gray-50">Cancelar</button>

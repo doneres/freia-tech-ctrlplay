@@ -45,7 +45,7 @@ public class UsuarioController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<UsuarioDTO.Response>> atualizar(
-            @PathVariable UUID id, @RequestBody @Valid UsuarioDTO.Request dto) {
+            @PathVariable UUID id, @RequestBody @Valid UsuarioDTO.AtualizarRequest dto) {
         return ResponseEntity.ok(ApiResponse.ok(usuarioService.atualizar(id, dto)));
     }
 

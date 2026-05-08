@@ -40,6 +40,25 @@ public class UsuarioDTO {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
+    public static class AtualizarRequest {
+
+        @NotBlank(message = "Nome é obrigatório")
+        private String nome;
+
+        @NotBlank(message = "Email é obrigatório")
+        @Email(message = "Email inválido")
+        private String email;
+
+        private String senha; // opcional — se em branco, mantém a senha atual
+
+        @NotNull(message = "Perfil é obrigatório")
+        private PerfilUsuario perfil;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class Response {
 
         private UUID id;

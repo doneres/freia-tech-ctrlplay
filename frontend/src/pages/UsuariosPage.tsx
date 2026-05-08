@@ -8,12 +8,14 @@ const perfilLabels: Record<PerfilUsuario, string> = {
   ADMINISTRADOR: 'Administrador',
   INSTRUTOR: 'Instrutor',
   COORDENACAO: 'Coordenação',
+  MONITOR: 'Monitor',
 };
 
 const perfilColors: Record<PerfilUsuario, string> = {
   ADMINISTRADOR: 'bg-brand-100 text-brand-700',
   INSTRUTOR: 'bg-blue-100 text-blue-700',
   COORDENACAO: 'bg-green-100 text-green-700',
+  MONITOR: 'bg-amber-100 text-amber-700',
 };
 
 const emptyForm: UsuarioRequest = { nome: '', email: '', senha: '', perfil: 'INSTRUTOR' };
@@ -23,6 +25,7 @@ export default function UsuariosPage() {
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Usuario | null>(null);
   const [form, setForm] = useState<UsuarioRequest>(emptyForm);
+  const [senhaConfirmacao, setSenhaConfirmacao] = useState('');
   const [error, setError] = useState('');
 
   const { data: usuarios = [], isLoading } = useQuery<Usuario[]>({
@@ -57,6 +60,7 @@ export default function UsuariosPage() {
   function openCreate() {
     setEditing(null);
     setForm(emptyForm);
+    setSenhaConfirmacao('');
     setError('');
     setShowModal(true);
   }
@@ -64,6 +68,7 @@ export default function UsuariosPage() {
   function openEdit(u: Usuario) {
     setEditing(u);
     setForm({ nome: u.nome, email: u.email, senha: '', perfil: u.perfil });
+    setSenhaConfirmacao('');
     setError('');
     setShowModal(true);
   }
@@ -71,12 +76,23 @@ export default function UsuariosPage() {
   function closeModal() {
     setShowModal(false);
     setEditing(null);
+    setSenhaConfirmacao('');
     setError('');
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    const senhaPreenchida = !!form.senha;
+    if (!editing && !senhaPreenchida) {
+      return setError('Senha é obrigatória.');
+    }
+    if (senhaPreenchida && form.senha !== senhaConfirmacao) {
+      return setError('As senhas não coincidem.');
+    }
+    if (senhaPreenchida && form.senha!.length < 6) {
+      return setError('Senha deve ter no mínimo 6 caracteres.');
+    }
     if (editing) {
       mutAtualizar.mutate(form);
     } else {
@@ -212,15 +228,28 @@ export default function UsuariosPage() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Senha {editing ? '(deixe em branco para manter)' : '*'}
+                  Senha {editing ? <span className="font-normal text-gray-400">(deixe em branco para manter)</span> : <span className="text-red-500">*</span>}
                 </label>
                 <input
                   type="password"
-                  required={!editing}
                   value={form.senha}
                   onChange={(e) => setForm((p) => ({ ...p, senha: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                  placeholder={editing ? '••••••••' : ''}
+                  placeholder={editing ? '••••••••' : 'Mínimo 6 caracteres'}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Confirmar senha {editing ? <span className="font-normal text-gray-400">(se alterar a senha)</span> : <span className="text-red-500">*</span>}
+                </label>
+                <input
+                  type="password"
+                  value={senhaConfirmacao}
+                  onChange={(e) => setSenhaConfirmacao(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  placeholder="••••••••"
+                  autoComplete="new-password"
                 />
               </div>
               <div>
@@ -232,6 +261,7 @@ export default function UsuariosPage() {
                 >
                   <option value="INSTRUTOR">Instrutor</option>
                   <option value="COORDENACAO">Coordenação</option>
+                  <option value="MONITOR">Monitor</option>
                   <option value="ADMINISTRADOR">Administrador</option>
                 </select>
               </div>

@@ -48,14 +48,19 @@ public class UsuarioService {
     }
 
     @Transactional
-    public UsuarioDTO.Response atualizar(UUID id, UsuarioDTO.Request dto) {
+    public UsuarioDTO.Response atualizar(UUID id, UsuarioDTO.AtualizarRequest dto) {
         Usuario usuario = buscarEntidadePorId(id);
         if (!usuario.getEmail().equals(dto.getEmail()) && usuarioRepository.existsByEmail(dto.getEmail())) {
             throw new BusinessException("Email já cadastrado: " + dto.getEmail());
         }
         usuario.setNome(dto.getNome());
         usuario.setEmail(dto.getEmail());
-        usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
+        if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
+            if (dto.getSenha().length() < 6) {
+                throw new BusinessException("Senha deve ter no mínimo 6 caracteres");
+            }
+            usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
+        }
         usuario.setPerfil(dto.getPerfil());
         return toResponse(usuarioRepository.save(usuario));
     }

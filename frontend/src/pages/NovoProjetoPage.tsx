@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, Check, Loader2, Plus, X, ChevronRight, ChevronLeft, CheckCircle2,
   Cpu, Code2, Search, Gamepad2,
 } from 'lucide-react';
-import { criarProjeto } from '../api/projetos';
+import { criarProjeto, atualizarProjeto, buscarProjeto } from '../api/projetos';
 import { listarInstrutores } from '../api/usuarios';
+import type { Projeto } from '../types';
 import { listarFerramentas } from '../api/ferramentas';
 import { listarEstoque } from '../api/estoque';
 import type { ProjetoRequest, Turno, NivelTurma, TipoProjeto, FerramentaSoftware, ItemEstoque, TipoItemEstoque } from '../types';
@@ -249,9 +250,12 @@ function EquipamentosEstoqueSelector({
 }
 
 export default function NovoProjetoPage() {
+  const { id: projetoId } = useParams<{ id?: string }>();
+  const isEditing = !!projetoId;
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const [initialized, setInitialized] = useState(!isEditing);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<Partial<ProjetoRequest>>({
     instrutorId: user?.perfil === 'INSTRUTOR' ? user.id : '',
@@ -266,6 +270,41 @@ export default function NovoProjetoPage() {
   const [equipamentosSelecionados, setEquipamentosSelecionados] = useState<EquipamentoSelecionado[]>([]);
   const [estoqueSearch, setEstoqueSearch] = useState('');
   const [estoqueTipoFiltro, setEstoqueTipoFiltro] = useState<TipoItemEstoque | ''>('');
+
+  const { data: projetoExistente, isLoading: loadingProjeto } = useQuery<Projeto>({
+    queryKey: ['projeto', projetoId],
+    queryFn: () => buscarProjeto(projetoId!),
+    enabled: isEditing,
+  });
+
+  useEffect(() => {
+    if (projetoExistente && !initialized) {
+      setForm({
+        nomeProjeto: projetoExistente.nomeProjeto,
+        instrutorId: projetoExistente.instrutor.id,
+        codigoTurma: projetoExistente.codigoTurma ?? '',
+        turno: projetoExistente.turno ?? undefined,
+        nivelTurma: projetoExistente.nivelTurma ?? undefined,
+        qtdAlunos: projetoExistente.qtdAlunos ?? undefined,
+        integrantes: projetoExistente.integrantes ?? [],
+        ods: projetoExistente.ods ?? '',
+        problemaIdentificado: projetoExistente.problemaIdentificado ?? '',
+        solucaoProposta: projetoExistente.solucaoProposta ?? '',
+        objetivoProjeto: projetoExistente.objetivoProjeto ?? '',
+        tipoProjeto: projetoExistente.tipoProjeto ?? undefined,
+        ferramentasSoftwareIds: projetoExistente.ferramentasSoftware.map((f) => f.id),
+        equipamentosEstoque: projetoExistente.materiais
+          .filter((m) => m.itemEstoque !== null)
+          .map((m) => ({ itemEstoqueId: m.itemEstoque!.id, quantidade: m.quantidade })),
+      });
+      setEquipamentosSelecionados(
+        projetoExistente.materiais
+          .filter((m) => m.itemEstoque !== null)
+          .map((m) => ({ item: m.itemEstoque!, quantidade: m.quantidade }))
+      );
+      setInitialized(true);
+    }
+  }, [projetoExistente, initialized]);
 
   const { data: instrutores = [] } = useQuery({
     queryKey: ['instrutores'],
@@ -293,18 +332,23 @@ export default function NovoProjetoPage() {
   });
 
   const mutation = useMutation({
-    mutationFn: criarProjeto,
+    mutationFn: (data: ProjetoRequest) =>
+      isEditing ? atualizarProjeto(projetoId!, data) : criarProjeto(data),
     onError: (err: unknown) => {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setStepError(msg ?? 'Erro ao criar projeto. Tente novamente.');
+      setStepError(msg ?? `Erro ao ${isEditing ? 'salvar' : 'criar'} projeto. Tente novamente.`);
     },
   });
 
   useEffect(() => {
-    if (mutation.isSuccess && mutation.data) {
-      navigate(`/projetos/${mutation.data.id}`);
+    if (mutation.isSuccess) {
+      if (isEditing) {
+        navigate(`/projetos/${projetoId}`);
+      } else if (mutation.data) {
+        navigate(`/projetos/${mutation.data.id}`);
+      }
     }
-  }, [mutation.isSuccess, mutation.data, navigate]);
+  }, [mutation.isSuccess, mutation.data, navigate, isEditing, projetoId]);
 
   function f<K extends keyof ProjetoRequest>(key: K, value: ProjetoRequest[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -405,23 +449,25 @@ export default function NovoProjetoPage() {
     <div className="h-full flex flex-col overflow-hidden relative bg-white">
 
       {/* ── Loading overlay ─────────────────────────────────────────────────── */}
-      {mutation.isPending && (
+      {(mutation.isPending || (isEditing && loadingProjeto)) && (
         <div className="absolute inset-0 bg-white/95 flex flex-col items-center justify-center z-50">
           <div className="w-16 h-16 rounded-full bg-brand-50 flex items-center justify-center mb-4">
             <Loader2 size={30} className="animate-spin text-brand-600" />
           </div>
-          <p className="font-semibold text-gray-900 text-base">Criando projeto...</p>
-          <p className="text-sm text-gray-500 mt-1">Salvando as informações, aguarde</p>
+          <p className="font-semibold text-gray-900 text-base">
+            {loadingProjeto ? 'Carregando projeto...' : isEditing ? 'Salvando alterações...' : 'Criando projeto...'}
+          </p>
+          <p className="text-sm text-gray-500 mt-1">Aguarde</p>
         </div>
       )}
 
       {/* ── Header: voltar + indicador de etapas ────────────────────────────── */}
       <div className="flex-shrink-0 px-8 pt-5 pb-4 border-b border-gray-100">
         <Link
-          to="/projetos"
+          to={isEditing ? `/projetos/${projetoId}` : '/projetos'}
           className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 mb-4"
         >
-          <ArrowLeft size={13} /> Voltar para projetos
+          <ArrowLeft size={13} /> {isEditing ? 'Voltar ao projeto' : 'Voltar para projetos'}
         </Link>
 
         <div className="flex items-center">
@@ -463,7 +509,9 @@ export default function NovoProjetoPage() {
       {/* ── Título da etapa ──────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-8 pt-4 pb-1">
         <h1 className="text-base font-bold text-gray-900">
-          {['Identificação do projeto', 'Proposta e objetivos', 'Ferramentas e tecnologia', 'Revisão e envio'][step]}
+          {isEditing
+            ? ['Identificação do projeto', 'Proposta e objetivos', 'Ferramentas e tecnologia', 'Revisão e confirmação'][step]
+            : ['Identificação do projeto', 'Proposta e objetivos', 'Ferramentas e tecnologia', 'Revisão e envio'][step]}
         </h1>
         <p className="text-xs text-gray-400 mt-0.5">
           {[
@@ -845,7 +893,7 @@ export default function NovoProjetoPage() {
       <div className="flex-shrink-0 px-8 py-4 bg-white border-t border-gray-100">
         <div className="flex items-center justify-between">
           {step === 0 ? (
-            <Link to="/projetos" className="text-sm text-gray-500 hover:text-gray-700 font-medium">
+            <Link to={isEditing ? `/projetos/${projetoId}` : '/projetos'} className="text-sm text-gray-500 hover:text-gray-700 font-medium">
               Cancelar
             </Link>
           ) : (
@@ -876,7 +924,7 @@ export default function NovoProjetoPage() {
               className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
             >
               <CheckCircle2 size={16} />
-              Criar projeto
+              {isEditing ? 'Salvar alterações' : 'Criar projeto'}
             </button>
           )}
         </div>

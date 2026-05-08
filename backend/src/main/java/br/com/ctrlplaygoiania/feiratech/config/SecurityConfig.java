@@ -5,6 +5,7 @@ import br.com.ctrlplaygoiania.feiratech.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -59,6 +60,19 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**")
                         .permitAll()
+                        // Gestão de usuários: somente ADMINISTRADOR pode escrever
+                        .requestMatchers(HttpMethod.POST, "/api/usuarios").hasAuthority("ROLE_ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").hasAuthority("ROLE_ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasAuthority("ROLE_ADMINISTRADOR")
+                        // Estoque: ADMINISTRADOR, COORDENACAO e MONITOR podem escrever
+                        .requestMatchers(HttpMethod.POST, "/api/estoque/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO", "ROLE_MONITOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/estoque/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO", "ROLE_MONITOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/estoque/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO", "ROLE_MONITOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/estoque/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO", "ROLE_MONITOR")
+                        // Ferramentas software: somente ADMINISTRADOR pode escrever
+                        .requestMatchers(HttpMethod.POST, "/api/ferramentas-software/**").hasAuthority("ROLE_ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/ferramentas-software/**").hasAuthority("ROLE_ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/ferramentas-software/**").hasAuthority("ROLE_ADMINISTRADOR")
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
