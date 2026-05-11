@@ -10,6 +10,7 @@ import NovoProjetoPage from './pages/NovoProjetoPage';
 import UsuariosPage from './pages/UsuariosPage';
 import EstoquePage from './pages/EstoquePage';
 import FerramentasPage from './pages/FerramentasPage';
+import RelatoriosPage from './pages/RelatoriosPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -33,6 +34,7 @@ export default function App() {
               <Route path="usuarios" element={<UsuariosPage />} />
               <Route path="estoque" element={<EstoquePage />} />
               <Route path="ferramentas" element={<FerramentasPage />} />
+              <Route path="relatorios" element={<RelatoriosPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

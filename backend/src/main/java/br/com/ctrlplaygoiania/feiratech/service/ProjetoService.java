@@ -326,7 +326,7 @@ public class ProjetoService {
         material.setQuantidade(dto.getQuantidade());
         material.setUnidade(dto.getUnidade());
         material.setCustoUnitario(dto.getCustoUnitario());
-        material.setStatusCompra(dto.getStatusCompra() != null ? dto.getStatusCompra() : StatusCompra.A_COMPRAR);
+        material.setStatusCompra(StatusCompra.A_COMPRAR);
         material.setImagemUrl(dto.getImagemUrl());
 
         if (dto.getLinks() != null) {

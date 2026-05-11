@@ -33,7 +33,6 @@ public class MaterialDTO {
 
         private String unidade;
         private BigDecimal custoUnitario;
-        private StatusCompra statusCompra;
         private String imagemUrl;
 
         @Valid

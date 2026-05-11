@@ -15,6 +15,7 @@ import br.com.ctrlplaygoiania.feiratech.repository.MaterialRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.ProjetoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MaterialService {
@@ -145,7 +147,9 @@ public class MaterialService {
 
         try {
             notificarPorEmail(salvo, novoStatus, justificativa);
-        } catch (Exception ignored) { }
+        } catch (Exception e) {
+            log.warn("Falha ao enviar notificação de e-mail para material {}: {}", id, e.getMessage());
+        }
 
         return toResponse(salvo);
     }
@@ -241,7 +245,6 @@ public class MaterialService {
         material.setQuantidade(dto.getQuantidade());
         material.setUnidade(dto.getUnidade());
         material.setCustoUnitario(dto.getCustoUnitario());
-        if (dto.getStatusCompra() != null) material.setStatusCompra(dto.getStatusCompra());
         material.setImagemUrl(dto.getImagemUrl());
     }
 

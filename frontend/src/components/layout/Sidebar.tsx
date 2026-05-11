@@ -6,6 +6,7 @@ import {
   LogOut,
   Package,
   Code2,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -21,6 +22,7 @@ export default function Sidebar() {
   const canManageUsers = user?.perfil === "ADMINISTRADOR";
   const canManageEstoque = user?.perfil === "ADMINISTRADOR" || user?.perfil === "COORDENACAO" || user?.perfil === "MONITOR";
   const canManageFerramentas = user?.perfil === "ADMINISTRADOR";
+  const canViewRelatorios = user?.perfil === "ADMINISTRADOR" || user?.perfil === "COORDENACAO" || user?.perfil === "INSTRUTOR" || user?.perfil === "MONITOR";
 
   function handleSignOut() {
     signOut();
@@ -90,6 +92,22 @@ export default function Sidebar() {
           >
             <Code2 size={18} />
             Ferramentas
+          </NavLink>
+        )}
+
+        {canViewRelatorios && (
+          <NavLink
+            to="/relatorios"
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                isActive
+                  ? "bg-brand-600 text-white"
+                  : "text-gray-400 hover:text-white hover:bg-gray-800"
+              }`
+            }
+          >
+            <FileSpreadsheet size={18} />
+            Relatórios
           </NavLink>
         )}
 

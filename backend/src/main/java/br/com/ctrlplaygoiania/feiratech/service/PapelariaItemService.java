@@ -12,12 +12,14 @@ import br.com.ctrlplaygoiania.feiratech.repository.PapelariaItemRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.ProjetoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class PapelariaItemService {
@@ -98,7 +100,9 @@ public class PapelariaItemService {
 
         try {
             notificarPorEmail(salvo, novoStatus, justificativa);
-        } catch (Exception ignored) { }
+        } catch (Exception e) {
+            log.warn("Falha ao enviar notificação de e-mail para papelaria {}: {}", id, e.getMessage());
+        }
 
         return toResponse(salvo);
     }

@@ -3,6 +3,7 @@ package br.com.ctrlplaygoiania.feiratech.config;
 import br.com.ctrlplaygoiania.feiratech.security.JwtAuthenticationFilter;
 import br.com.ctrlplaygoiania.feiratech.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -20,6 +21,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -29,6 +31,10 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserDetailsServiceImpl userDetailsService;
+
+    // Em produção defina CORS_ALLOWED_ORIGINS com a origem exata do frontend, ex: https://feiratech.ctrlplay.com.br
+    @Value("${CORS_ALLOWED_ORIGINS:*}")
+    private String corsAllowedOrigins;
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -73,6 +79,19 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/ferramentas-software/**").hasAuthority("ROLE_ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PUT, "/api/ferramentas-software/**").hasAuthority("ROLE_ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PATCH, "/api/ferramentas-software/**").hasAuthority("ROLE_ADMINISTRADOR")
+                        // Relatórios: acesso restrito por perfil
+                        .requestMatchers(HttpMethod.GET, "/api/relatorios/estoque")
+                            .hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO", "ROLE_MONITOR")
+                        .requestMatchers(HttpMethod.GET, "/api/relatorios/projetos")
+                            .hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
+                        .requestMatchers(HttpMethod.GET, "/api/relatorios/projetos-por-instrutor")
+                            .hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
+                        .requestMatchers(HttpMethod.GET, "/api/relatorios/solicitacoes-compra")
+                            .hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
+                        .requestMatchers(HttpMethod.GET, "/api/relatorios/meus-projetos")
+                            .hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_INSTRUTOR")
+                        .requestMatchers(HttpMethod.GET, "/api/relatorios/minhas-solicitacoes")
+                            .hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_INSTRUTOR")
                         .anyRequest().authenticated())
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -83,7 +102,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        List<String> origins = Arrays.asList(corsAllowedOrigins.split(","));
+        config.setAllowedOriginPatterns(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization"));

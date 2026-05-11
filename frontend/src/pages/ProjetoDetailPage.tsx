@@ -24,7 +24,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import { useAuth } from '../contexts/AuthContext';
 
 type Tab = 'geral' | 'proposta' | 'materiais' | 'papelaria' | 'cronograma' | 'pitch';
-type MaterialMode = 'escolha' | 'estoque' | 'compra';
+type MaterialMode = 'estoque' | 'compra';
 type PapelariaMode = 'estoque' | 'compra';
 
 const semanas: { key: string; label: string; field: keyof Projeto }[] = [
@@ -59,6 +59,7 @@ export default function ProjetoDetailPage() {
   const [materialModalMode, setMaterialModalMode] = useState<MaterialMode | null>(null);
   const [papelariaModalMode, setPapelariaModalMode] = useState<PapelariaMode | null>(null);
   const [statusCompraError, setStatusCompraError] = useState<string | null>(null);
+  const [failedMaterialId, setFailedMaterialId] = useState<string | null>(null);
 
   const { data: projeto, isLoading } = useQuery<Projeto>({
     queryKey: ['projeto', id],
@@ -94,9 +95,10 @@ export default function ProjetoDetailPage() {
   const mutStatusCompra = useMutation({
     mutationFn: ({ materialId, status, justificativa }: { materialId: string; status: StatusCompra; justificativa?: string }) =>
       atualizarStatusCompra(materialId, status, justificativa),
-    onSuccess: () => { setStatusCompraError(null); invalidate(); },
-    onError: (err: any) => {
+    onSuccess: () => { setStatusCompraError(null); setFailedMaterialId(null); invalidate(); },
+    onError: (err: any, variables) => {
       setStatusCompraError(err?.response?.data?.message ?? 'Erro ao atualizar status da solicitação.');
+      setFailedMaterialId(variables.materialId);
     },
   });
   const mutDeleteMaterial = useMutation({
@@ -232,7 +234,7 @@ export default function ProjetoDetailPage() {
       {activeTab === 'materiais' && (
         <TabMateriais
           projeto={projeto}
-          onStatusChange={(materialId, status, justificativa) => { setStatusCompraError(null); mutStatusCompra.mutate({ materialId, status, justificativa }); }}
+          onStatusChange={(materialId, status, justificativa) => { setStatusCompraError(null); setFailedMaterialId(null); mutStatusCompra.mutate({ materialId, status, justificativa }); }}
           onDelete={(materialId) => mutDeleteMaterial.mutate(materialId)}
           onAddDoEstoque={() => setMaterialModalMode('estoque')}
           onAddSolicitacao={() => setMaterialModalMode('compra')}
@@ -241,6 +243,7 @@ export default function ProjetoDetailPage() {
           isAdmin={user?.perfil === 'ADMINISTRADOR'}
           isStatusChangePending={mutStatusCompra.isPending}
           statusChangeError={statusCompraError}
+          statusChangeErrorMaterialId={failedMaterialId}
         />
       )}
       {activeTab === 'papelaria' && (
@@ -278,34 +281,6 @@ export default function ProjetoDetailPage() {
             <button onClick={() => mutReprovar.mutate()} disabled={!justificativaReprovacao.trim() || mutReprovar.isPending}
               className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-sm font-medium py-2 rounded-lg">
               {mutReprovar.isPending ? 'Reprovando...' : 'Reprovar'}
-            </button>
-          </div>
-        </Modal>
-      )}
-
-      {/* Modal: escolha entre estoque ou solicitação */}
-      {materialModalMode === 'escolha' && (
-        <Modal title="Adicionar material" onClose={() => setMaterialModalMode(null)}>
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <button onClick={() => setMaterialModalMode('estoque')}
-              className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-gray-200 hover:border-brand-400 hover:bg-brand-50 transition-all">
-              <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
-                <Package size={22} className="text-teal-600" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-semibold text-gray-900">Usar do estoque</p>
-                <p className="text-xs text-gray-500 mt-0.5">Item disponível na escola</p>
-              </div>
-            </button>
-            <button onClick={() => setMaterialModalMode('compra')}
-              className="flex flex-col items-center gap-3 p-5 rounded-xl border-2 border-gray-200 hover:border-brand-400 hover:bg-brand-50 transition-all">
-              <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                <ShoppingCart size={22} className="text-orange-600" />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-semibold text-gray-900">Solicitar compra</p>
-                <p className="text-xs text-gray-500 mt-0.5">Item não disponível no estoque</p>
-              </div>
             </button>
           </div>
         </Modal>
@@ -1011,7 +986,7 @@ function PapelariaModal({ onClose, onConfirm, isPending, error }: {
   );
 }
 
-function TabMateriais({ projeto, onStatusChange, onDelete, onAddDoEstoque, onAddSolicitacao, canManage, canApprove, isAdmin, isStatusChangePending, statusChangeError }: {
+function TabMateriais({ projeto, onStatusChange, onDelete, onAddDoEstoque, onAddSolicitacao, canManage, canApprove, isAdmin, isStatusChangePending, statusChangeError, statusChangeErrorMaterialId }: {
   projeto: Projeto;
   onStatusChange: (id: string, status: StatusCompra, justificativa?: string) => void;
   onDelete: (id: string) => void;
@@ -1022,6 +997,7 @@ function TabMateriais({ projeto, onStatusChange, onDelete, onAddDoEstoque, onAdd
   isAdmin: boolean;
   isStatusChangePending: boolean;
   statusChangeError: string | null;
+  statusChangeErrorMaterialId: string | null;
 }) {
   const [reprovando, setReprovando] = useState<string | null>(null);
   const [justificativa, setJustificativa] = useState('');
@@ -1189,7 +1165,7 @@ function TabMateriais({ projeto, onStatusChange, onDelete, onAddDoEstoque, onAdd
                       )}
                     </div>
 
-                    {statusChangeError && reprovando !== m.id && (
+                    {statusChangeError && statusChangeErrorMaterialId === m.id && (
                       <p className="mt-2 text-xs text-red-600 bg-red-50 px-3 py-1.5 rounded-lg">{statusChangeError}</p>
                     )}
 
