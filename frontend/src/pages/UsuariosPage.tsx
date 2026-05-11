@@ -103,7 +103,7 @@ export default function UsuariosPage() {
   const isPending = mutCriar.isPending || mutAtualizar.isPending;
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -119,71 +119,114 @@ export default function UsuariosPage() {
         </button>
       </div>
 
-      {/* Table */}
+      {/* Table / Cards */}
       {isLoading ? (
         <div className="flex justify-center py-16">
           <Loader2 size={28} className="animate-spin text-brand-600" />
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Nome
-                </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Email
-                </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Perfil
-                </th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                  Status
-                </th>
-                <th className="px-5 py-3" />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {usuarios.map((u) => (
-                <tr key={u.id} className={!u.ativo ? 'opacity-50' : ''}>
-                  <td className="px-5 py-3.5 font-medium text-gray-900">{u.nome}</td>
-                  <td className="px-5 py-3.5 text-gray-600">{u.email}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${perfilColors[u.perfil]}`}>
-                      {perfilLabels[u.perfil]}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${u.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                      {u.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => openEdit(u)}
-                        className="text-gray-400 hover:text-brand-600 transition-colors"
-                        title="Editar"
-                      >
-                        <Pencil size={15} />
-                      </button>
-                      {u.ativo && (
-                        <button
-                          onClick={() => { if (confirm(`Desativar ${u.nome}?`)) mutDesativar.mutate(u.id); }}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
-                          title="Desativar"
-                        >
-                          <UserX size={15} />
-                        </button>
-                      )}
+        <>
+          {/* Mobile cards */}
+          <div className="sm:hidden space-y-3">
+            {usuarios.map((u) => (
+              <div key={u.id} className={`bg-white rounded-xl border border-gray-200 p-4 ${!u.ativo ? 'opacity-50' : ''}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{u.nome}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">{u.email}</p>
+                    <div className="flex items-center flex-wrap gap-2 mt-2">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${perfilColors[u.perfil]}`}>
+                        {perfilLabels[u.perfil]}
+                      </span>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${u.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {u.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
                     </div>
-                  </td>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => openEdit(u)}
+                      className="p-1.5 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                      title="Editar"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    {u.ativo && (
+                      <button
+                        onClick={() => { if (confirm(`Desativar ${u.nome}?`)) mutDesativar.mutate(u.id); }}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Desativar"
+                      >
+                        <UserX size={15} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Nome
+                  </th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Email
+                  </th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Perfil
+                  </th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    Status
+                  </th>
+                  <th className="px-5 py-3" />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {usuarios.map((u) => (
+                  <tr key={u.id} className={!u.ativo ? 'opacity-50' : ''}>
+                    <td className="px-5 py-3.5 font-medium text-gray-900">{u.nome}</td>
+                    <td className="px-5 py-3.5 text-gray-600">{u.email}</td>
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${perfilColors[u.perfil]}`}>
+                        {perfilLabels[u.perfil]}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${u.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                        {u.ativo ? 'Ativo' : 'Inativo'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => openEdit(u)}
+                          className="text-gray-400 hover:text-brand-600 transition-colors"
+                          title="Editar"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                        {u.ativo && (
+                          <button
+                            onClick={() => { if (confirm(`Desativar ${u.nome}?`)) mutDesativar.mutate(u.id); }}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                            title="Desativar"
+                          >
+                            <UserX size={15} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Modal */}

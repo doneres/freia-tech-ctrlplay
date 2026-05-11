@@ -56,7 +56,7 @@ export default function ProjetosPage() {
   const canCreateProject = user?.perfil === 'INSTRUTOR' || user?.perfil === 'ADMINISTRADOR';
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -69,13 +69,24 @@ export default function ProjetosPage() {
         {canCreateProject && (
           <Link
             to="/projetos/novo"
-            className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
+            className="hidden sm:flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-4 py-2.5 rounded-lg transition-colors"
           >
             <Plus size={16} />
             Novo projeto
           </Link>
         )}
       </div>
+
+      {/* FAB mobile */}
+      {canCreateProject && (
+        <Link
+          to="/projetos/novo"
+          className="sm:hidden fixed bottom-6 right-6 w-14 h-14 bg-brand-600 hover:bg-brand-700 text-white rounded-full shadow-lg flex items-center justify-center z-30 transition-colors"
+          aria-label="Novo projeto"
+        >
+          <Plus size={24} />
+        </Link>
+      )}
 
       {/* Filters */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 mb-5 flex flex-wrap gap-3">
@@ -90,38 +101,40 @@ export default function ProjetosPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <Filter size={15} className="text-gray-400" />
+        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-2">
+            <Filter size={15} className="text-gray-400 shrink-0" />
+            <select
+              value={statusProjeto}
+              onChange={(e) => setStatusProjeto(e.target.value as StatusProjeto | '')}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+            >
+              {statusOptions.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
           <select
-            value={statusProjeto}
-            onChange={(e) => setStatusProjeto(e.target.value as StatusProjeto | '')}
+            value={turno}
+            onChange={(e) => setTurno(e.target.value as Turno | '')}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
           >
-            {statusOptions.map((o) => (
+            {turnoOptions.map((o) => (
+              <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+
+          <select
+            value={nivelTurma}
+            onChange={(e) => setNivelTurma(e.target.value as NivelTurma | '')}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+          >
+            {nivelOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
         </div>
-
-        <select
-          value={turno}
-          onChange={(e) => setTurno(e.target.value as Turno | '')}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-        >
-          {turnoOptions.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-
-        <select
-          value={nivelTurma}
-          onChange={(e) => setNivelTurma(e.target.value as NivelTurma | '')}
-          className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-        >
-          {nivelOptions.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
       </div>
 
       {/* List */}

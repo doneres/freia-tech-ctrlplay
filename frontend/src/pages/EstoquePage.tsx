@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Search, Package, Cpu, Code2, Gamepad2, Paperclip,
-  Pencil, PowerOff, RotateCcw, Loader2, Trash2, X, ArrowLeft,
+  Pencil, PowerOff, RotateCcw, Loader2, Trash2, X, ArrowLeft, MoreHorizontal,
 } from 'lucide-react';
 import {
   listarEstoque, desativarItemEstoque, reativarItemEstoque,
@@ -118,6 +118,7 @@ export default function EstoquePage() {
   const [search, setSearch] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState<TipoItemEstoque | ''>('');
   const [apenasAtivos, setApenasAtivos] = useState(true);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<'tipo' | 'campos'>('tipo');
   const [editando, setEditando] = useState<ItemEstoque | null>(null);
@@ -219,7 +220,7 @@ export default function EstoquePage() {
   const TipoIcon = TIPO_ICONS[form.tipo];
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -337,42 +338,89 @@ export default function EstoquePage() {
                 </div>
 
                 {isAdmin && (
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => abrirEditar(item)}
-                      className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
-                      title="Editar"
-                    >
-                      <Pencil size={15} />
-                    </button>
-                    {item.ativo ? (
+                  <>
+                    {/* Desktop actions */}
+                    <div className="hidden sm:flex items-center gap-1 shrink-0">
                       <button
-                        onClick={() => desativarMutation.mutate(item.id)}
-                        className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                        title="Desativar"
+                        onClick={() => abrirEditar(item)}
+                        className="p-2 text-gray-400 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition-colors"
+                        title="Editar"
                       >
-                        <PowerOff size={15} />
+                        <Pencil size={15} />
                       </button>
-                    ) : (
+                      {item.ativo ? (
+                        <button
+                          onClick={() => desativarMutation.mutate(item.id)}
+                          className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                          title="Desativar"
+                        >
+                          <PowerOff size={15} />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => reativarMutation.mutate(item.id)}
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Reativar"
+                        >
+                          <RotateCcw size={15} />
+                        </button>
+                      )}
                       <button
-                        onClick={() => reativarMutation.mutate(item.id)}
-                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                        title="Reativar"
+                        onClick={() => {
+                          if (confirm(`Excluir "${item.nome}" permanentemente? Esta ação não pode ser desfeita.`))
+                            deletarMutation.mutate(item.id);
+                        }}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Excluir permanentemente"
                       >
-                        <RotateCcw size={15} />
+                        <Trash2 size={15} />
                       </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        if (confirm(`Excluir "${item.nome}" permanentemente? Esta ação não pode ser desfeita.`))
-                          deletarMutation.mutate(item.id);
-                      }}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Excluir permanentemente"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
+                    </div>
+                    {/* Mobile actions dropdown */}
+                    <div className="sm:hidden relative shrink-0">
+                      <button
+                        onClick={() => setActiveMenu(activeMenu === item.id ? null : item.id)}
+                        className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <MoreHorizontal size={16} />
+                      </button>
+                      {activeMenu === item.id && (
+                        <div className="absolute right-0 top-9 z-20 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[130px]">
+                          <button
+                            onClick={() => { abrirEditar(item); setActiveMenu(null); }}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          >
+                            <Pencil size={14} /> Editar
+                          </button>
+                          {item.ativo ? (
+                            <button
+                              onClick={() => { desativarMutation.mutate(item.id); setActiveMenu(null); }}
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-amber-700 hover:bg-amber-50"
+                            >
+                              <PowerOff size={14} /> Desativar
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => { reativarMutation.mutate(item.id); setActiveMenu(null); }}
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-green-700 hover:bg-green-50"
+                            >
+                              <RotateCcw size={14} /> Reativar
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              if (confirm(`Excluir "${item.nome}" permanentemente?`))
+                                deletarMutation.mutate(item.id);
+                              setActiveMenu(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 size={14} /> Excluir
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
             );
