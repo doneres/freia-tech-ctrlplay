@@ -8,6 +8,7 @@ import {
   Code2,
   FileSpreadsheet,
   X,
+  CalendarDays,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -77,6 +78,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           <NavLink to="/projetos" className={({ isActive }) => deskLinkClass(isActive)}>
             <FolderKanban size={18} className="shrink-0" />
             <span className="hidden lg:block">Projetos</span>
+          </NavLink>
+          <NavLink to="/agenda" className={({ isActive }) => deskLinkClass(isActive)}>
+            <CalendarDays size={18} className="shrink-0" />
+            <span className="hidden lg:block">Agenda</span>
           </NavLink>
           {canManageEstoque && (
             <NavLink to="/estoque" className={({ isActive }) => deskLinkClass(isActive)}>
@@ -148,6 +153,10 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           <NavLink to="/projetos" onClick={onClose} className={({ isActive }) => mobLinkClass(isActive)}>
             <FolderKanban size={18} />
             Projetos
+          </NavLink>
+          <NavLink to="/agenda" onClick={onClose} className={({ isActive }) => mobLinkClass(isActive)}>
+            <CalendarDays size={18} />
+            Agenda
           </NavLink>
           {canManageEstoque && (
             <NavLink to="/estoque" onClick={onClose} className={({ isActive }) => mobLinkClass(isActive)}>

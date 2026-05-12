@@ -11,6 +11,8 @@ import UsuariosPage from './pages/UsuariosPage';
 import EstoquePage from './pages/EstoquePage';
 import FerramentasPage from './pages/FerramentasPage';
 import RelatoriosPage from './pages/RelatoriosPage';
+import AgendaPage from './pages/AgendaPage';
+import EventoPage from './pages/EventoPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,6 +37,8 @@ export default function App() {
               <Route path="estoque" element={<EstoquePage />} />
               <Route path="ferramentas" element={<FerramentasPage />} />
               <Route path="relatorios" element={<RelatoriosPage />} />
+              <Route path="agenda" element={<AgendaPage />} />
+              <Route path="evento" element={<EventoPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

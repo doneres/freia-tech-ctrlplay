@@ -7,6 +7,7 @@ import { listarInstrutores } from '../api/usuarios';
 import { listarEstoque } from '../api/estoque';
 import type { Projeto, StatusProjeto, Turno, NivelTurma } from '../types';
 import StatusBadge from '../components/ui/StatusBadge';
+import SearchableSelect from '../components/ui/SearchableSelect';
 import { useAuth } from '../contexts/AuthContext';
 
 const FILTERS_KEY = 'projetos_filters';
@@ -134,76 +135,66 @@ export default function ProjetosPage() {
       )}
 
       {/* Filters */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-5 flex flex-wrap gap-3">
-        <div className="flex items-center gap-2 flex-1 min-w-48 border border-gray-300 rounded-lg px-3 py-2">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 mb-5 flex flex-wrap gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1 min-w-[200px] border border-gray-300 rounded-lg px-3 py-2">
           <Search size={16} className="text-gray-400 shrink-0" />
           <input
             type="text"
             placeholder="Buscar projeto ou grupo..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 text-sm outline-none bg-transparent"
+            className="flex-1 text-sm outline-none bg-transparent min-w-0"
           />
         </div>
 
-        <div className="flex flex-wrap gap-3 w-full sm:w-auto">
-          <div className="flex items-center gap-2">
-            <Filter size={15} className="text-gray-400 shrink-0" />
-            <select
-              value={statusProjeto}
-              onChange={(e) => setStatusProjeto(e.target.value as StatusProjeto | '')}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-            >
-              {statusOptions.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
-          </div>
-
+        <div className="flex items-center gap-2">
+          <Filter size={15} className="text-gray-400 shrink-0" />
           <select
-            value={turno}
-            onChange={(e) => setTurno(e.target.value as Turno | '')}
+            value={statusProjeto}
+            onChange={(e) => setStatusProjeto(e.target.value as StatusProjeto | '')}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
           >
-            {turnoOptions.map((o) => (
+            {statusOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-
-          <select
-            value={nivelTurma}
-            onChange={(e) => setNivelTurma(e.target.value as NivelTurma | '')}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-          >
-            {nivelOptions.map((o) => (
-              <option key={o.value} value={o.value}>{o.label}</option>
-            ))}
-          </select>
-
-          {!isInstrutor && (
-            <select
-              value={instrutorId}
-              onChange={(e) => setInstrutorId(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-            >
-              <option value="">Todos os professores</option>
-              {instrutores.map((i) => (
-                <option key={i.id} value={i.id}>{i.nome}</option>
-              ))}
-            </select>
-          )}
-
-          <select
-            value={itemEstoqueId}
-            onChange={(e) => setItemEstoqueId(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-          >
-            <option value="">Todos os materiais</option>
-            {itensEstoque.map((item) => (
-              <option key={item.id} value={item.id}>{item.nome}</option>
             ))}
           </select>
         </div>
+
+        <select
+          value={turno}
+          onChange={(e) => setTurno(e.target.value as Turno | '')}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+        >
+          {turnoOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+
+        <select
+          value={nivelTurma}
+          onChange={(e) => setNivelTurma(e.target.value as NivelTurma | '')}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+        >
+          {nivelOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+
+        {!isInstrutor && (
+          <SearchableSelect
+            value={instrutorId}
+            onChange={setInstrutorId}
+            options={instrutores.map((i) => ({ value: i.id, label: i.nome }))}
+            placeholder="Todos os professores"
+          />
+        )}
+
+        <SearchableSelect
+          value={itemEstoqueId}
+          onChange={setItemEstoqueId}
+          options={itensEstoque.map((item) => ({ value: item.id, label: item.nome }))}
+          placeholder="Todos os materiais"
+        />
       </div>
 
       {/* List */}
