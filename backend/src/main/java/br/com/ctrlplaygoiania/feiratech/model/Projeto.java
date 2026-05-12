@@ -168,6 +168,12 @@ public class Projeto {
     @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PapelariaItem> itensPapelaria = new ArrayList<>();
 
+    @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<RegistroAcompanhamento> acompanhamento = new ArrayList<>();
+
+    @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ArquivoProjeto> arquivos = new ArrayList<>();
+
     // ── Auditoria ─────────────────────────────────────────────────────────
 
     private LocalDateTime dataSubmissao;

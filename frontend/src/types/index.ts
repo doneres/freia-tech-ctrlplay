@@ -24,6 +24,9 @@ export type StatusSemana = 'NAO_INICIADO' | 'EM_ANDAMENTO' | 'CONCLUIDO' | 'ATRA
 export type NivelTurma = 'CK' | 'CT' | 'CY' | 'CP';
 export type Turno = 'MANHA' | 'TARDE' | 'NOITE';
 export type FormatoDemo = 'AO_VIVO' | 'VIDEO' | 'SLIDES' | 'HIBRIDO';
+export type FaseDesignThinking = 'EMPATIA' | 'DEFINICAO' | 'IDEACAO' | 'PROTOTIPACAO' | 'TESTE' | 'GERAL';
+export type TipoArquivo = 'GITHUB' | 'GOOGLE_DRIVE' | 'FIGMA' | 'YOUTUBE' | 'SITE' | 'OUTRO';
+export type CategoriaForum = 'PUBLICACAO_WEB' | 'PLATAFORMAS' | 'DICAS_GERAIS' | 'DUVIDAS';
 
 export interface AuthUser {
   id: string;
@@ -102,6 +105,46 @@ export interface PapelariaItem {
   statusAquisicao: StatusCompra;
   justificativaReprovacao: string | null;
   createdAt: string;
+}
+
+export interface RegistroAcompanhamento {
+  id: string;
+  autor: Usuario;
+  fase: FaseDesignThinking;
+  titulo: string;
+  descricao: string;
+  semana: number | null;
+  createdAt: string;
+}
+
+export interface ArquivoProjeto {
+  id: string;
+  autor: Usuario;
+  titulo: string;
+  url: string;
+  tipo: TipoArquivo;
+  descricao: string | null;
+  createdAt: string;
+}
+
+export interface RespostaForum {
+  id: string;
+  autor: Usuario;
+  conteudo: string;
+  createdAt: string;
+}
+
+export interface PostForum {
+  id: string;
+  autor: Usuario;
+  titulo: string;
+  conteudo: string;
+  categoria: CategoriaForum;
+  fixado: boolean;
+  totalRespostas: number;
+  respostas: RespostaForum[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Projeto {

@@ -13,6 +13,7 @@ import FerramentasPage from './pages/FerramentasPage';
 import RelatoriosPage from './pages/RelatoriosPage';
 import AgendaPage from './pages/AgendaPage';
 import EventoPage from './pages/EventoPage';
+import ForumPage from './pages/ForumPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +40,7 @@ export default function App() {
               <Route path="relatorios" element={<RelatoriosPage />} />
               <Route path="agenda" element={<AgendaPage />} />
               <Route path="evento" element={<EventoPage />} />
+              <Route path="forum" element={<ForumPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

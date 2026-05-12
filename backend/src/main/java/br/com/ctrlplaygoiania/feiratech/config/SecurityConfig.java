@@ -101,6 +101,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/eventos/**").hasAuthority("ROLE_ADMINISTRADOR")
                         // Agenda: todos autenticados
                         .requestMatchers(HttpMethod.GET, "/api/agenda/**").authenticated()
+                        // Forum: só ADMIN pode fixar posts
+                        .requestMatchers(HttpMethod.PATCH, "/api/forum/**").hasAuthority("ROLE_ADMINISTRADOR")
                         .anyRequest().authenticated())
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint((req, res, ex) ->

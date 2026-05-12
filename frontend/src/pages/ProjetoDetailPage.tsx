@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Loader2, CheckCircle, XCircle, Send, Trash2,
   ShoppingCart, X, Plus, Package, Cpu, Code2, Gamepad2, Paperclip,
-  Search, ExternalLink, Pencil,
+  Search, ExternalLink, Pencil, FolderOpen, Globe, Video, Link as LinkIcon, Layers,
 } from 'lucide-react';
 import {
   buscarProjeto, submeterProjeto, aprovarProjeto, reprovarProjeto,
@@ -19,11 +19,13 @@ import {
   type PapelariaRequest,
 } from '../api/papelaria';
 import { listarEstoque } from '../api/estoque';
-import type { Projeto, StatusSemana, StatusCompra, Material, ItemEstoque, TipoItemEstoque, PapelariaItem } from '../types';
+import { listarAcompanhamento, criarRegistro, deletarRegistro, type AcompanhamentoRequest } from '../api/acompanhamento';
+import { listarArquivos, criarArquivo, deletarArquivo, type ArquivoRequest } from '../api/arquivos';
+import type { Projeto, StatusSemana, StatusCompra, Material, ItemEstoque, TipoItemEstoque, PapelariaItem, RegistroAcompanhamento, ArquivoProjeto, FaseDesignThinking, TipoArquivo } from '../types';
 import StatusBadge from '../components/ui/StatusBadge';
 import { useAuth } from '../contexts/AuthContext';
 
-type Tab = 'geral' | 'proposta' | 'materiais' | 'papelaria' | 'cronograma' | 'pitch';
+type Tab = 'geral' | 'proposta' | 'materiais' | 'papelaria' | 'cronograma' | 'acompanhamento' | 'arquivos';
 type MaterialMode = 'estoque' | 'compra';
 type PapelariaMode = 'estoque' | 'compra';
 
@@ -150,7 +152,8 @@ export default function ProjetoDetailPage() {
     { key: 'materiais', label: `Materiais (${projeto.materiais?.length ?? 0})` },
     { key: 'papelaria', label: `Papelaria (${projeto.itensPapelaria?.length ?? 0})` },
     { key: 'cronograma', label: 'Cronograma' },
-    { key: 'pitch', label: 'Pitch' },
+    { key: 'acompanhamento', label: 'Acompanhamento' },
+    { key: 'arquivos', label: 'Arquivos' },
   ];
 
   return (
@@ -263,7 +266,22 @@ export default function ProjetoDetailPage() {
           onUpdateStatus={(semana, status) => mutStatusSemana.mutate({ semana, status })}
           canUpdate={canManage} />
       )}
-      {activeTab === 'pitch' && <TabPitch projeto={projeto} />}
+      {activeTab === 'acompanhamento' && (
+        <TabAcompanhamento
+          projetoId={projeto.id}
+          canAdd={canManage || user?.perfil === 'INSTRUTOR'}
+          currentUserEmail={user?.email ?? ''}
+          isAdmin={user?.perfil === 'ADMINISTRADOR'}
+        />
+      )}
+      {activeTab === 'arquivos' && (
+        <TabArquivos
+          projetoId={projeto.id}
+          canAdd={canManage || user?.perfil === 'INSTRUTOR'}
+          currentUserEmail={user?.email ?? ''}
+          isAdmin={user?.perfil === 'ADMINISTRADOR'}
+        />
+      )}
 
       {/* Reprovar projeto modal */}
       {showReprovacaoModal && (
@@ -739,16 +757,406 @@ function TabCronograma({ projeto, onUpdateStatus, canUpdate }: {
   );
 }
 
-function TabPitch({ projeto }: { projeto: Projeto }) {
+// ── TabAcompanhamento ────────────────────────────────────────────────────────
+
+const FASE_LABEL: Record<FaseDesignThinking, string> = {
+  EMPATIA: 'Empatia',
+  DEFINICAO: 'Definição',
+  IDEACAO: 'Ideação',
+  PROTOTIPACAO: 'Prototipação',
+  TESTE: 'Teste',
+  GERAL: 'Geral',
+};
+
+const FASE_COLOR: Record<FaseDesignThinking, string> = {
+  EMPATIA: 'bg-pink-100 text-pink-700',
+  DEFINICAO: 'bg-purple-100 text-purple-700',
+  IDEACAO: 'bg-amber-100 text-amber-700',
+  PROTOTIPACAO: 'bg-blue-100 text-blue-700',
+  TESTE: 'bg-green-100 text-green-700',
+  GERAL: 'bg-gray-100 text-gray-600',
+};
+
+const FASES: FaseDesignThinking[] = ['EMPATIA', 'DEFINICAO', 'IDEACAO', 'PROTOTIPACAO', 'TESTE', 'GERAL'];
+
+function TabAcompanhamento({ projetoId, canAdd, currentUserEmail, isAdmin }: {
+  projetoId: string;
+  canAdd: boolean;
+  currentUserEmail: string;
+  isAdmin: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState<AcompanhamentoRequest>({
+    fase: 'GERAL',
+    titulo: '',
+    descricao: '',
+    semana: undefined,
+  });
+  const [showForm, setShowForm] = useState(false);
+
+  const { data: registros = [], isLoading } = useQuery<RegistroAcompanhamento[]>({
+    queryKey: ['acompanhamento', projetoId],
+    queryFn: () => listarAcompanhamento(projetoId),
+  });
+
+  const mutCriar = useMutation({
+    mutationFn: (data: AcompanhamentoRequest) => criarRegistro(projetoId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['acompanhamento', projetoId] });
+      setForm({ fase: 'GERAL', titulo: '', descricao: '', semana: undefined });
+      setShowForm(false);
+    },
+  });
+
+  const mutDeletar = useMutation({
+    mutationFn: (registroId: string) => deletarRegistro(projetoId, registroId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['acompanhamento', projetoId] }),
+  });
+
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
   return (
-    <Section title="Pitch">
-      <div className="col-span-2"><Field label="Ato 1" value={projeto.pitchAto1} /></div>
-      <div className="col-span-2"><Field label="Ato 2" value={projeto.pitchAto2} /></div>
-      <div className="col-span-2"><Field label="Ato 3" value={projeto.pitchAto3} /></div>
-      <Field label="Duração (min)" value={projeto.duracaoPitch} />
-      <Field label="Formato da demo" value={projeto.formatoDemo} />
-      <div className="col-span-2"><Field label="Observações" value={projeto.observacoes} /></div>
-    </Section>
+    <div>
+      {canAdd && (
+        <div className="mb-5">
+          {!showForm ? (
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-1.5 border border-brand-300 text-brand-700 hover:bg-brand-50 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+            >
+              <Plus size={14} />
+              Adicionar registro
+            </button>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h4 className="text-sm font-semibold text-gray-700 mb-4">Novo registro de acompanhamento</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Fase *</label>
+                  <select
+                    value={form.fase}
+                    onChange={(e) => setForm(f => ({ ...f, fase: e.target.value as FaseDesignThinking }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                  >
+                    {FASES.map(f => <option key={f} value={f}>{FASE_LABEL[f]}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Semana (opcional)</label>
+                  <select
+                    value={form.semana ?? ''}
+                    onChange={(e) => setForm(f => ({ ...f, semana: e.target.value ? Number(e.target.value) : undefined }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                  >
+                    <option value="">Sem semana</option>
+                    {[1, 2, 3, 4].map(s => <option key={s} value={s}>Semana {s}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Título *</label>
+                <input
+                  value={form.titulo}
+                  onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))}
+                  placeholder="Ex: Entrevista com alunos da turma"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Descrição *</label>
+                <textarea
+                  rows={3}
+                  value={form.descricao}
+                  onChange={(e) => setForm(f => ({ ...f, descricao: e.target.value }))}
+                  placeholder="Descreva o que foi realizado..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => mutCriar.mutate(form)}
+                  disabled={!form.titulo.trim() || !form.descricao.trim() || mutCriar.isPending}
+                  className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white text-sm font-medium px-4 py-2 rounded-lg"
+                >
+                  {mutCriar.isPending && <Loader2 size={14} className="animate-spin" />}
+                  Salvar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex justify-center py-10">
+          <Loader2 size={24} className="animate-spin text-brand-600" />
+        </div>
+      ) : registros.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 py-12 text-center">
+          <Send size={36} className="text-gray-300 mx-auto mb-2" />
+          <p className="text-sm text-gray-500">Nenhum registro de acompanhamento.</p>
+          {canAdd && <p className="text-xs text-gray-400 mt-1">Use o botão acima para adicionar o primeiro registro.</p>}
+        </div>
+      ) : (
+        <div className="relative">
+          {/* Timeline line */}
+          <div className="absolute left-3 top-0 bottom-0 w-px bg-gray-200" />
+          <div className="space-y-4">
+            {registros.map((r) => (
+              <div key={r.id} className="relative pl-10">
+                {/* Timeline dot */}
+                <div className={`absolute left-0 top-3 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${FASE_COLOR[r.fase]}`}>
+                  {FASE_LABEL[r.fase][0]}
+                </div>
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${FASE_COLOR[r.fase]}`}>
+                          {FASE_LABEL[r.fase]}
+                        </span>
+                        {r.semana && (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                            Semana {r.semana}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm font-semibold text-gray-900">{r.titulo}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {r.autor.nome} · {formatDate(r.createdAt)}
+                      </p>
+                      <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{r.descricao}</p>
+                    </div>
+                    {(canAdd || isAdmin) && (
+                      <button
+                        onClick={() => { if (confirm('Excluir este registro?')) mutDeletar.mutate(r.id); }}
+                        className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── TabArquivos ──────────────────────────────────────────────────────────────
+
+const TIPO_ARQUIVO_LABEL: Record<TipoArquivo, string> = {
+  GITHUB: 'GitHub',
+  GOOGLE_DRIVE: 'Google Drive',
+  FIGMA: 'Figma',
+  YOUTUBE: 'YouTube',
+  SITE: 'Site',
+  OUTRO: 'Outro',
+};
+
+const TIPO_ARQUIVO_COLOR: Record<TipoArquivo, string> = {
+  GITHUB: 'bg-gray-900 text-white',
+  GOOGLE_DRIVE: 'bg-blue-100 text-blue-700',
+  FIGMA: 'bg-purple-100 text-purple-700',
+  YOUTUBE: 'bg-red-100 text-red-700',
+  SITE: 'bg-cyan-100 text-cyan-700',
+  OUTRO: 'bg-gray-100 text-gray-600',
+};
+
+const TIPO_ARQUIVO_ICON: Record<TipoArquivo, React.ElementType> = {
+  GITHUB: Code2,
+  GOOGLE_DRIVE: FolderOpen,
+  FIGMA: Layers,
+  YOUTUBE: Video,
+  SITE: Globe,
+  OUTRO: LinkIcon,
+};
+
+const TIPOS_ARQUIVO: TipoArquivo[] = ['GITHUB', 'GOOGLE_DRIVE', 'FIGMA', 'YOUTUBE', 'SITE', 'OUTRO'];
+
+function TabArquivos({ projetoId, canAdd, currentUserEmail, isAdmin }: {
+  projetoId: string;
+  canAdd: boolean;
+  currentUserEmail: string;
+  isAdmin: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState<ArquivoRequest>({
+    titulo: '',
+    url: '',
+    tipo: 'GITHUB',
+    descricao: '',
+  });
+  const [showForm, setShowForm] = useState(false);
+
+  const { data: arquivos = [], isLoading } = useQuery<ArquivoProjeto[]>({
+    queryKey: ['arquivos', projetoId],
+    queryFn: () => listarArquivos(projetoId),
+  });
+
+  const mutCriar = useMutation({
+    mutationFn: (data: ArquivoRequest) => criarArquivo(projetoId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['arquivos', projetoId] });
+      setForm({ titulo: '', url: '', tipo: 'GITHUB', descricao: '' });
+      setShowForm(false);
+    },
+  });
+
+  const mutDeletar = useMutation({
+    mutationFn: (arquivoId: string) => deletarArquivo(projetoId, arquivoId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['arquivos', projetoId] }),
+  });
+
+  function formatDate(iso: string) {
+    return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
+  return (
+    <div>
+      {canAdd && (
+        <div className="mb-5">
+          {!showForm ? (
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-1.5 border border-brand-300 text-brand-700 hover:bg-brand-50 text-sm font-medium px-3 py-2 rounded-lg transition-colors"
+            >
+              <Plus size={14} />
+              Adicionar arquivo/link
+            </button>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h4 className="text-sm font-semibold text-gray-700 mb-4">Novo arquivo ou link</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Tipo *</label>
+                  <select
+                    value={form.tipo}
+                    onChange={(e) => setForm(f => ({ ...f, tipo: e.target.value as TipoArquivo }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+                  >
+                    {TIPOS_ARQUIVO.map(t => <option key={t} value={t}>{TIPO_ARQUIVO_LABEL[t]}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Título *</label>
+                  <input
+                    value={form.titulo}
+                    onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))}
+                    placeholder="Ex: Repositório do projeto"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="block text-xs font-medium text-gray-700 mb-1">URL *</label>
+                <input
+                  value={form.url}
+                  onChange={(e) => setForm(f => ({ ...f, url: e.target.value }))}
+                  placeholder="https://..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Descrição (opcional)</label>
+                <textarea
+                  rows={2}
+                  value={form.descricao}
+                  onChange={(e) => setForm(f => ({ ...f, descricao: e.target.value }))}
+                  placeholder="Breve descrição do conteúdo..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => mutCriar.mutate({ ...form, descricao: form.descricao || undefined })}
+                  disabled={!form.titulo.trim() || !form.url.trim() || mutCriar.isPending}
+                  className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white text-sm font-medium px-4 py-2 rounded-lg"
+                >
+                  {mutCriar.isPending && <Loader2 size={14} className="animate-spin" />}
+                  Salvar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex justify-center py-10">
+          <Loader2 size={24} className="animate-spin text-brand-600" />
+        </div>
+      ) : arquivos.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 py-12 text-center">
+          <LinkIcon size={36} className="text-gray-300 mx-auto mb-2" />
+          <p className="text-sm text-gray-500">Nenhum arquivo ou link adicionado.</p>
+          {canAdd && <p className="text-xs text-gray-400 mt-1">Adicione links para o GitHub, Google Drive, Figma e outros.</p>}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {arquivos.map((a) => {
+            const Icon = TIPO_ARQUIVO_ICON[a.tipo];
+            return (
+              <div key={a.id} className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="flex items-start gap-3">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${TIPO_ARQUIVO_COLOR[a.tipo]}`}>
+                    <Icon size={16} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${TIPO_ARQUIVO_COLOR[a.tipo]}`}>
+                          {TIPO_ARQUIVO_LABEL[a.tipo]}
+                        </span>
+                        <p className="text-sm font-medium text-gray-900 mt-1 truncate">{a.titulo}</p>
+                      </div>
+                      {(canAdd || isAdmin) && (
+                        <button
+                          onClick={() => { if (confirm('Excluir este arquivo?')) mutDeletar.mutate(a.id); }}
+                          className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
+                    <a
+                      href={a.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-xs text-brand-600 hover:underline mt-1 truncate"
+                    >
+                      <ExternalLink size={11} />
+                      {a.url}
+                    </a>
+                    {a.descricao && (
+                      <p className="text-xs text-gray-500 mt-1">{a.descricao}</p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1.5">{a.autor.nome} · {formatDate(a.createdAt)}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 
