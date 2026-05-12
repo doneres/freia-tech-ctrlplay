@@ -70,6 +70,7 @@ public class SecurityConfig {
                         // Gestão de usuários: somente ADMINISTRADOR pode escrever
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").hasAuthority("ROLE_ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").hasAuthority("ROLE_ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/usuarios/**").hasAuthority("ROLE_ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/usuarios/**").hasAuthority("ROLE_ADMINISTRADOR")
                         // Estoque: ADMINISTRADOR, COORDENACAO e MONITOR podem escrever
                         .requestMatchers(HttpMethod.POST, "/api/estoque/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO", "ROLE_MONITOR")

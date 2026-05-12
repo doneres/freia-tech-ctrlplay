@@ -72,6 +72,13 @@ public class UsuarioService {
         usuarioRepository.save(usuario);
     }
 
+    @Transactional
+    public void reativar(UUID id) {
+        Usuario usuario = buscarEntidadePorId(id);
+        usuario.setAtivo(true);
+        usuarioRepository.save(usuario);
+    }
+
     @Transactional(readOnly = true)
     public List<UsuarioDTO.Response> listarPorPerfil(PerfilUsuario perfil) {
         return usuarioRepository.findByPerfil(perfil).stream()

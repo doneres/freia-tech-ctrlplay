@@ -31,3 +31,7 @@ export async function atualizarUsuario(id: string, data: UsuarioRequest): Promis
 export async function desativarUsuario(id: string): Promise<void> {
   await api.delete(`/usuarios/${id}`);
 }
+
+export async function reativarUsuario(id: string): Promise<void> {
+  await api.patch(`/usuarios/${id}/reativar`);
+}

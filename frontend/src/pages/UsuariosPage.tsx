@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, X, Loader2, UserX, Pencil } from 'lucide-react';
-import { listarUsuarios, criarUsuario, atualizarUsuario, desativarUsuario, type UsuarioRequest } from '../api/usuarios';
+import { Plus, X, Loader2, UserX, UserCheck, Pencil } from 'lucide-react';
+import { listarUsuarios, criarUsuario, atualizarUsuario, desativarUsuario, reativarUsuario, type UsuarioRequest } from '../api/usuarios';
 import type { Usuario, PerfilUsuario } from '../types';
 
 const perfilLabels: Record<PerfilUsuario, string> = {
@@ -49,6 +49,11 @@ export default function UsuariosPage() {
 
   const mutDesativar = useMutation({
     mutationFn: (id: string) => desativarUsuario(id),
+    onSuccess: invalidate,
+  });
+
+  const mutReativar = useMutation({
+    mutationFn: (id: string) => reativarUsuario(id),
     onSuccess: invalidate,
   });
 
@@ -151,13 +156,23 @@ export default function UsuariosPage() {
                     >
                       <Pencil size={15} />
                     </button>
-                    {u.ativo && (
+                    {u.ativo ? (
                       <button
                         onClick={() => { if (confirm(`Desativar ${u.nome}?`)) mutDesativar.mutate(u.id); }}
-                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        disabled={mutDesativar.isPending}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-60"
                         title="Desativar"
                       >
                         <UserX size={15} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => { if (confirm(`Reativar ${u.nome}?`)) mutReativar.mutate(u.id); }}
+                        disabled={mutReativar.isPending}
+                        className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-60"
+                        title="Reativar"
+                      >
+                        <UserCheck size={15} />
                       </button>
                     )}
                   </div>
@@ -210,13 +225,23 @@ export default function UsuariosPage() {
                         >
                           <Pencil size={15} />
                         </button>
-                        {u.ativo && (
+                        {u.ativo ? (
                           <button
                             onClick={() => { if (confirm(`Desativar ${u.nome}?`)) mutDesativar.mutate(u.id); }}
-                            className="text-gray-400 hover:text-red-500 transition-colors"
+                            disabled={mutDesativar.isPending}
+                            className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-60"
                             title="Desativar"
                           >
                             <UserX size={15} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => { if (confirm(`Reativar ${u.nome}?`)) mutReativar.mutate(u.id); }}
+                            disabled={mutReativar.isPending}
+                            className="text-gray-400 hover:text-green-600 transition-colors disabled:opacity-60"
+                            title="Reativar"
+                          >
+                            <UserCheck size={15} />
                           </button>
                         )}
                       </div>

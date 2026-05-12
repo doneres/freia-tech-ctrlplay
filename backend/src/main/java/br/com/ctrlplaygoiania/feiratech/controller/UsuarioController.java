@@ -54,4 +54,10 @@ public class UsuarioController {
         usuarioService.desativar(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/reativar")
+    public ResponseEntity<Void> reativar(@PathVariable UUID id) {
+        usuarioService.reativar(id);
+        return ResponseEntity.noContent().build();
+    }
 }
