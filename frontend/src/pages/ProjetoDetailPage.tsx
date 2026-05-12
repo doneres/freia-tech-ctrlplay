@@ -25,7 +25,7 @@ import type { Projeto, StatusSemana, StatusCompra, Material, ItemEstoque, TipoIt
 import StatusBadge from '../components/ui/StatusBadge';
 import { useAuth } from '../contexts/AuthContext';
 
-type Tab = 'geral' | 'proposta' | 'materiais' | 'papelaria' | 'cronograma' | 'acompanhamento' | 'arquivos';
+type Tab = 'geral' | 'proposta' | 'materiais' | 'papelaria' | 'cronograma' | 'arquivos';
 type MaterialMode = 'estoque' | 'compra';
 type PapelariaMode = 'estoque' | 'compra';
 
@@ -152,7 +152,6 @@ export default function ProjetoDetailPage() {
     { key: 'materiais', label: `Materiais (${projeto.materiais?.length ?? 0})` },
     { key: 'papelaria', label: `Papelaria (${projeto.itensPapelaria?.length ?? 0})` },
     { key: 'cronograma', label: 'Cronograma' },
-    { key: 'acompanhamento', label: 'Acompanhamento' },
     { key: 'arquivos', label: 'Arquivos' },
   ];
 
@@ -262,12 +261,10 @@ export default function ProjetoDetailPage() {
         />
       )}
       {activeTab === 'cronograma' && (
-        <TabCronograma projeto={projeto}
+        <TabCronograma
+          projeto={projeto}
           onUpdateStatus={(semana, status) => mutStatusSemana.mutate({ semana, status })}
-          canUpdate={canManage} />
-      )}
-      {activeTab === 'acompanhamento' && (
-        <TabAcompanhamento
+          canUpdate={canManage}
           projetoId={projeto.id}
           canAdd={canManage || user?.perfil === 'INSTRUTOR'}
           currentUserEmail={user?.email ?? ''}
@@ -726,72 +723,17 @@ function TabProposta({ projeto }: { projeto: Projeto }) {
   );
 }
 
-function TabCronograma({ projeto, onUpdateStatus, canUpdate }: {
+function TabCronograma({ projeto, onUpdateStatus, canUpdate, projetoId, canAdd, isAdmin }: {
   projeto: Projeto;
   onUpdateStatus: (semana: string, status: StatusSemana) => void;
   canUpdate: boolean;
-}) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
-      <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wide">Acompanhamento semanal</h3>
-      <div className="space-y-3">
-        {semanas.map(({ key, label, field }) => {
-          const status = projeto[field] as StatusSemana;
-          return (
-            <div key={key} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-              <div>
-                <p className="text-sm font-medium text-gray-900">{label}</p>
-                <StatusBadge type="semana" value={status} />
-              </div>
-              {canUpdate && (
-                <select value={status} onChange={(e) => onUpdateStatus(key, e.target.value as StatusSemana)}
-                  className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-brand-500 bg-white">
-                  {statusSemanaOptions.map((s) => <option key={s} value={s}>{statusSemanaLabels[s]}</option>)}
-                </select>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ── TabAcompanhamento ────────────────────────────────────────────────────────
-
-const FASE_LABEL: Record<FaseDesignThinking, string> = {
-  EMPATIA: 'Empatia',
-  DEFINICAO: 'Definição',
-  IDEACAO: 'Ideação',
-  PROTOTIPACAO: 'Prototipação',
-  TESTE: 'Teste',
-  GERAL: 'Geral',
-};
-
-const FASE_COLOR: Record<FaseDesignThinking, string> = {
-  EMPATIA: 'bg-pink-100 text-pink-700',
-  DEFINICAO: 'bg-purple-100 text-purple-700',
-  IDEACAO: 'bg-amber-100 text-amber-700',
-  PROTOTIPACAO: 'bg-blue-100 text-blue-700',
-  TESTE: 'bg-green-100 text-green-700',
-  GERAL: 'bg-gray-100 text-gray-600',
-};
-
-const FASES: FaseDesignThinking[] = ['EMPATIA', 'DEFINICAO', 'IDEACAO', 'PROTOTIPACAO', 'TESTE', 'GERAL'];
-
-function TabAcompanhamento({ projetoId, canAdd, currentUserEmail, isAdmin }: {
   projetoId: string;
   canAdd: boolean;
   currentUserEmail: string;
   isAdmin: boolean;
 }) {
   const queryClient = useQueryClient();
-  const [form, setForm] = useState<AcompanhamentoRequest>({
-    fase: 'GERAL',
-    titulo: '',
-    descricao: '',
-    semana: undefined,
-  });
+  const [form, setForm] = useState<AcompanhamentoRequest>({ fase: 'GERAL', titulo: '', descricao: '', semana: undefined });
   const [showForm, setShowForm] = useState(false);
 
   const { data: registros = [], isLoading } = useQuery<RegistroAcompanhamento[]>({
@@ -817,10 +759,38 @@ function TabAcompanhamento({ projetoId, canAdd, currentUserEmail, isAdmin }: {
     return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
   }
 
+  const byWeek = (n: number) => registros.filter(r => r.semana === n);
+  const gerais = registros.filter(r => r.semana == null);
+
+  function RecordRow({ r }: { r: RegistroAcompanhamento }) {
+    return (
+      <div className="px-5 py-3.5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-1">
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${FASE_COLOR[r.fase]}`}>{FASE_LABEL[r.fase]}</span>
+            </div>
+            <p className="text-sm font-semibold text-gray-900">{r.titulo}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{r.autor.nome} · {formatDate(r.createdAt)}</p>
+            <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{r.descricao}</p>
+          </div>
+          {(canAdd || isAdmin) && (
+            <button
+              onClick={() => { if (confirm('Excluir este registro?')) mutDeletar.mutate(r.id); }}
+              className="text-gray-400 hover:text-red-500 transition-colors shrink-0 mt-0.5"
+            >
+              <Trash2 size={15} />
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
+    <div className="space-y-4">
       {canAdd && (
-        <div className="mb-5">
+        <div>
           {!showForm ? (
             <button
               onClick={() => setShowForm(true)}
@@ -835,57 +805,38 @@ function TabAcompanhamento({ projetoId, canAdd, currentUserEmail, isAdmin }: {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Fase *</label>
-                  <select
-                    value={form.fase}
-                    onChange={(e) => setForm(f => ({ ...f, fase: e.target.value as FaseDesignThinking }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-                  >
+                  <select value={form.fase} onChange={(e) => setForm(f => ({ ...f, fase: e.target.value as FaseDesignThinking }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white">
                     {FASES.map(f => <option key={f} value={f}>{FASE_LABEL[f]}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Semana (opcional)</label>
-                  <select
-                    value={form.semana ?? ''}
-                    onChange={(e) => setForm(f => ({ ...f, semana: e.target.value ? Number(e.target.value) : undefined }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
-                  >
-                    <option value="">Sem semana</option>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Semana</label>
+                  <select value={form.semana ?? ''} onChange={(e) => setForm(f => ({ ...f, semana: e.target.value ? Number(e.target.value) : undefined }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                    <option value="">Geral (sem semana)</option>
                     {[1, 2, 3, 4].map(s => <option key={s} value={s}>Semana {s}</option>)}
                   </select>
                 </div>
               </div>
               <div className="mb-3">
                 <label className="block text-xs font-medium text-gray-700 mb-1">Título *</label>
-                <input
-                  value={form.titulo}
-                  onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))}
+                <input value={form.titulo} onChange={(e) => setForm(f => ({ ...f, titulo: e.target.value }))}
                   placeholder="Ex: Entrevista com alunos da turma"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500"
-                />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500" />
               </div>
               <div className="mb-4">
                 <label className="block text-xs font-medium text-gray-700 mb-1">Descrição *</label>
-                <textarea
-                  rows={3}
-                  value={form.descricao}
-                  onChange={(e) => setForm(f => ({ ...f, descricao: e.target.value }))}
+                <textarea rows={3} value={form.descricao} onChange={(e) => setForm(f => ({ ...f, descricao: e.target.value }))}
                   placeholder="Descreva o que foi realizado..."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 resize-none"
-                />
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
               </div>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={() => mutCriar.mutate(form)}
+                <button onClick={() => setShowForm(false)}
+                  className="border border-gray-300 text-gray-700 text-sm font-medium px-4 py-2 rounded-lg hover:bg-gray-50">Cancelar</button>
+                <button onClick={() => mutCriar.mutate(form)}
                   disabled={!form.titulo.trim() || !form.descricao.trim() || mutCriar.isPending}
-                  className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white text-sm font-medium px-4 py-2 rounded-lg"
-                >
+                  className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white text-sm font-medium px-4 py-2 rounded-lg">
                   {mutCriar.isPending && <Loader2 size={14} className="animate-spin" />}
                   Salvar
                 </button>
@@ -896,63 +847,78 @@ function TabAcompanhamento({ projetoId, canAdd, currentUserEmail, isAdmin }: {
       )}
 
       {isLoading ? (
-        <div className="flex justify-center py-10">
-          <Loader2 size={24} className="animate-spin text-brand-600" />
-        </div>
-      ) : registros.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 py-12 text-center">
-          <Send size={36} className="text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">Nenhum registro de acompanhamento.</p>
-          {canAdd && <p className="text-xs text-gray-400 mt-1">Use o botão acima para adicionar o primeiro registro.</p>}
-        </div>
+        <div className="flex justify-center py-8"><Loader2 size={24} className="animate-spin text-brand-600" /></div>
       ) : (
-        <div className="relative">
-          {/* Timeline line */}
-          <div className="absolute left-3 top-0 bottom-0 w-px bg-gray-200" />
-          <div className="space-y-4">
-            {registros.map((r) => (
-              <div key={r.id} className="relative pl-10">
-                {/* Timeline dot */}
-                <div className={`absolute left-0 top-3 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${FASE_COLOR[r.fase]}`}>
-                  {FASE_LABEL[r.fase][0]}
-                </div>
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${FASE_COLOR[r.fase]}`}>
-                          {FASE_LABEL[r.fase]}
-                        </span>
-                        {r.semana && (
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                            Semana {r.semana}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm font-semibold text-gray-900">{r.titulo}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {r.autor.nome} · {formatDate(r.createdAt)}
-                      </p>
-                      <p className="text-sm text-gray-700 mt-2 whitespace-pre-wrap">{r.descricao}</p>
-                    </div>
-                    {(canAdd || isAdmin) && (
-                      <button
-                        onClick={() => { if (confirm('Excluir este registro?')) mutDeletar.mutate(r.id); }}
-                        className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
-                      >
-                        <Trash2 size={15} />
-                      </button>
-                    )}
+        <>
+          {semanas.map(({ key, label, field }, idx) => {
+            const status = projeto[field] as StatusSemana;
+            const weekRecords = byWeek(idx + 1);
+            return (
+              <div key={key} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gray-50/70">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-gray-900">{label}</span>
+                    <StatusBadge type="semana" value={status} />
                   </div>
+                  {canUpdate && (
+                    <select value={status} onChange={(e) => onUpdateStatus(key, e.target.value as StatusSemana)}
+                      className="border border-gray-300 rounded-lg px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-brand-500 bg-white">
+                      {statusSemanaOptions.map((s) => <option key={s} value={s}>{statusSemanaLabels[s]}</option>)}
+                    </select>
+                  )}
                 </div>
+                {weekRecords.length === 0 ? (
+                  <p className="text-xs text-gray-400 px-5 py-3 italic">Nenhum registro para esta semana.</p>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {weekRecords.map(r => <RecordRow key={r.id} r={r} />)}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        </div>
+            );
+          })}
+
+          {gerais.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50/70">
+                <span className="text-sm font-semibold text-gray-700">Registros gerais</span>
+              </div>
+              <div className="divide-y divide-gray-50">
+                {gerais.map(r => <RecordRow key={r.id} r={r} />)}
+              </div>
+            </div>
+          )}
+
+          {!isLoading && registros.length === 0 && !canAdd && (
+            <div className="bg-white rounded-xl border border-gray-200 py-10 text-center">
+              <p className="text-sm text-gray-400">Nenhum registro de acompanhamento ainda.</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 }
+
+const FASE_LABEL: Record<FaseDesignThinking, string> = {
+  EMPATIA: 'Empatia',
+  DEFINICAO: 'Definição',
+  IDEACAO: 'Ideação',
+  PROTOTIPACAO: 'Prototipação',
+  TESTE: 'Teste',
+  GERAL: 'Geral',
+};
+
+const FASE_COLOR: Record<FaseDesignThinking, string> = {
+  EMPATIA: 'bg-pink-100 text-pink-700',
+  DEFINICAO: 'bg-purple-100 text-purple-700',
+  IDEACAO: 'bg-amber-100 text-amber-700',
+  PROTOTIPACAO: 'bg-blue-100 text-blue-700',
+  TESTE: 'bg-green-100 text-green-700',
+  GERAL: 'bg-gray-100 text-gray-600',
+};
+
+const FASES: FaseDesignThinking[] = ['EMPATIA', 'DEFINICAO', 'IDEACAO', 'PROTOTIPACAO', 'TESTE', 'GERAL'];
 
 // ── TabArquivos ──────────────────────────────────────────────────────────────
 

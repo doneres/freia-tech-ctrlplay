@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Plus, Search, Filter, Loader2, ChevronRight } from 'lucide-react';
+import { Plus, Search, Filter, Loader2, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { listarProjetos, type ProjetoFilters } from '../api/projetos';
 import { listarInstrutores } from '../api/usuarios';
 import { listarEstoque } from '../api/estoque';
@@ -12,6 +12,8 @@ import { useAuth } from '../contexts/AuthContext';
 
 const FILTERS_KEY = 'projetos_filters';
 
+type SortKey = 'recentes' | 'antigos' | 'nome_az' | 'nome_za' | 'professor_az' | 'mais_alunos' | 'menos_alunos';
+
 interface SavedFilters {
   search: string;
   statusProjeto: StatusProjeto | '';
@@ -19,6 +21,7 @@ interface SavedFilters {
   nivelTurma: NivelTurma | '';
   instrutorId: string;
   itemEstoqueId: string;
+  sortBy: SortKey;
 }
 
 function loadFilters(): SavedFilters {
@@ -28,7 +31,7 @@ function loadFilters(): SavedFilters {
   } catch {
     // ignore
   }
-  return { search: '', statusProjeto: '', turno: '', nivelTurma: '', instrutorId: '', itemEstoqueId: '' };
+  return { search: '', statusProjeto: '', turno: '', nivelTurma: '', instrutorId: '', itemEstoqueId: '', sortBy: 'recentes' };
 }
 
 const statusOptions: { value: StatusProjeto | ''; label: string }[] = [
@@ -66,13 +69,14 @@ export default function ProjetosPage() {
   const [nivelTurma, setNivelTurma] = useState<NivelTurma | ''>(saved.nivelTurma);
   const [instrutorId, setInstrutorId] = useState(saved.instrutorId);
   const [itemEstoqueId, setItemEstoqueId] = useState(saved.itemEstoqueId);
+  const [sortBy, setSortBy] = useState<SortKey>(saved.sortBy ?? 'recentes');
 
   const isInstrutor = user?.perfil === 'INSTRUTOR';
 
   useEffect(() => {
-    const filters: SavedFilters = { search, statusProjeto, turno, nivelTurma, instrutorId, itemEstoqueId };
+    const filters: SavedFilters = { search, statusProjeto, turno, nivelTurma, instrutorId, itemEstoqueId, sortBy };
     sessionStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
-  }, [search, statusProjeto, turno, nivelTurma, instrutorId, itemEstoqueId]);
+  }, [search, statusProjeto, turno, nivelTurma, instrutorId, itemEstoqueId, sortBy]);
 
   const queryFilters: ProjetoFilters = {
     search: search || undefined,
@@ -87,6 +91,19 @@ export default function ProjetosPage() {
     queryKey: ['projetos', queryFilters],
     queryFn: () => listarProjetos(queryFilters),
   });
+
+  const sortedProjetos = useMemo(() => {
+    const arr = [...projetos];
+    switch (sortBy) {
+      case 'antigos': return arr.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      case 'nome_az': return arr.sort((a, b) => a.nomeProjeto.localeCompare(b.nomeProjeto, 'pt-BR'));
+      case 'nome_za': return arr.sort((a, b) => b.nomeProjeto.localeCompare(a.nomeProjeto, 'pt-BR'));
+      case 'professor_az': return arr.sort((a, b) => (a.instrutor?.nome ?? '').localeCompare(b.instrutor?.nome ?? '', 'pt-BR'));
+      case 'mais_alunos': return arr.sort((a, b) => (b.qtdAlunos ?? 0) - (a.qtdAlunos ?? 0));
+      case 'menos_alunos': return arr.sort((a, b) => (a.qtdAlunos ?? 0) - (b.qtdAlunos ?? 0));
+      default: return arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+  }, [projetos, sortBy]);
 
   const { data: instrutores = [] } = useQuery({
     queryKey: ['instrutores'],
@@ -195,6 +212,23 @@ export default function ProjetosPage() {
           options={itensEstoque.map((item) => ({ value: item.id, label: item.nome }))}
           placeholder="Todos os materiais"
         />
+
+        <div className="flex items-center gap-2">
+          <ArrowUpDown size={15} className="text-gray-400 shrink-0" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortKey)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+          >
+            <option value="recentes">Mais recentes</option>
+            <option value="antigos">Mais antigos</option>
+            <option value="nome_az">Nome A–Z</option>
+            <option value="nome_za">Nome Z–A</option>
+            <option value="professor_az">Professor A–Z</option>
+            <option value="mais_alunos">Mais alunos</option>
+            <option value="menos_alunos">Menos alunos</option>
+          </select>
+        </div>
       </div>
 
       {/* List */}
@@ -202,7 +236,7 @@ export default function ProjetosPage() {
         <div className="flex justify-center py-16">
           <Loader2 size={28} className="animate-spin text-brand-600" />
         </div>
-      ) : projetos.length === 0 ? (
+      ) : sortedProjetos.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
           <p className="text-gray-500 text-sm">Nenhum projeto encontrado.</p>
           {canCreateProject && (
@@ -216,7 +250,7 @@ export default function ProjetosPage() {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {projetos.map((projeto, i) => (
+          {sortedProjetos.map((projeto, i) => (
             <Link
               key={projeto.id}
               to={`/projetos/${projeto.id}`}
@@ -231,7 +265,7 @@ export default function ProjetosPage() {
                   </p>
                   <StatusBadge type="projeto" value={projeto.statusProjeto} />
                 </div>
-                <p className="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                <p className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
                   <span>{projeto.instrutor?.nome}</span>
                   {projeto.codigoTurma && (
                     <>
@@ -249,6 +283,18 @@ export default function ProjetosPage() {
                     <>
                       <span className="text-gray-300">•</span>
                       <span>{projeto.nivelTurma}</span>
+                    </>
+                  )}
+                  {projeto.qtdAlunos != null && projeto.qtdAlunos > 0 && (
+                    <>
+                      <span className="text-gray-300">•</span>
+                      <span>{projeto.qtdAlunos} aluno{projeto.qtdAlunos !== 1 ? 's' : ''}</span>
+                    </>
+                  )}
+                  {projeto.createdAt && (
+                    <>
+                      <span className="text-gray-300">•</span>
+                      <span>{new Date(projeto.createdAt).toLocaleDateString('pt-BR')}</span>
                     </>
                   )}
                 </p>

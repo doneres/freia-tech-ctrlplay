@@ -31,36 +31,41 @@ function formatDate() {
 
 function EventBanner({ dataEvento, nome }: { dataEvento: string; nome: string }) {
   const diff = new Date(dataEvento).getTime() - Date.now();
-  if (diff <= 0) return null;
-
-  const days = Math.floor(diff / 86_400_000);
-  const hours = Math.floor((diff % 86_400_000) / 3_600_000);
-  const mins = Math.floor((diff % 3_600_000) / 60_000);
+  const past = diff <= 0;
+  const days = past ? 0 : Math.floor(diff / 86_400_000);
+  const hours = past ? 0 : Math.floor((diff % 86_400_000) / 3_600_000);
+  const mins = past ? 0 : Math.floor((diff % 3_600_000) / 60_000);
 
   return (
-    <Link
-      to="/agenda"
-      className="flex items-center justify-between gap-4 bg-brand-600 text-white rounded-2xl px-5 py-4 mb-6 hover:bg-brand-700 transition-colors group"
-    >
-      <div className="flex items-center gap-3 min-w-0">
-        <CalendarDays size={20} className="text-brand-200 shrink-0" />
+    <Link to="/agenda" className="block mb-6 group">
+      <div className="bg-brand-600 text-white rounded-2xl px-5 py-5 hover:bg-brand-700 transition-colors flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-xs text-brand-200 font-medium uppercase tracking-wide">Próximo evento</p>
-          <p className="font-semibold truncate">{nome}</p>
-          <p className="text-brand-200 text-xs mt-0.5">
-            {new Date(dataEvento).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+          <p className="text-xs text-brand-200 font-medium uppercase tracking-wide mb-0.5">Próximo evento</p>
+          <p className="font-bold text-lg leading-tight truncate">{nome}</p>
+          <p className="text-brand-300 text-xs mt-1 capitalize">
+            {new Date(dataEvento).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
           </p>
         </div>
-      </div>
-      <div className="flex items-center gap-3 shrink-0">
-        <div className="flex items-center gap-2 text-sm font-semibold tabular-nums">
-          <span className="bg-brand-500 rounded-lg px-2.5 py-1">{days}d</span>
-          <span className="text-brand-300">:</span>
-          <span className="bg-brand-500 rounded-lg px-2.5 py-1">{String(hours).padStart(2, '0')}h</span>
-          <span className="text-brand-300">:</span>
-          <span className="bg-brand-500 rounded-lg px-2.5 py-1">{String(mins).padStart(2, '0')}m</span>
+        <div className="shrink-0 flex items-end gap-5">
+          <div className="text-center">
+            <p className="text-6xl font-black leading-none tabular-nums">{past ? '0' : days}</p>
+            <p className="text-brand-200 text-xs font-semibold mt-1.5 uppercase tracking-widest">
+              {past ? 'Hoje!' : 'dias'}
+            </p>
+          </div>
+          {!past && (
+            <div className="flex flex-col gap-1 pb-1 text-center">
+              <div>
+                <p className="text-xl font-bold leading-none tabular-nums">{String(hours).padStart(2, '0')}h</p>
+                <p className="text-brand-300 text-[10px] mt-0.5">horas</p>
+              </div>
+              <div>
+                <p className="text-xl font-bold leading-none tabular-nums">{String(mins).padStart(2, '0')}m</p>
+                <p className="text-brand-300 text-[10px] mt-0.5">min</p>
+              </div>
+            </div>
+          )}
         </div>
-        <ArrowRight size={16} className="text-brand-200 group-hover:translate-x-1 transition-transform" />
       </div>
     </Link>
   );
@@ -211,7 +216,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Event countdown */}
-      {evento && <EventBanner dataEvento={evento.dataEvento} nome={evento.nome} />}
+      {evento ? (
+        <EventBanner dataEvento={evento.dataEvento} nome={evento.nome} />
+      ) : user?.perfil === 'ADMINISTRADOR' ? (
+        <Link to="/evento" className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-2xl px-5 py-4 mb-6 text-gray-400 hover:border-brand-300 hover:text-brand-600 transition-colors text-sm">
+          <CalendarDays size={16} />
+          Nenhum evento agendado — clique para cadastrar
+        </Link>
+      ) : null}
 
       {loadingProjetos ? (
         <div className="flex items-center justify-center py-20">
