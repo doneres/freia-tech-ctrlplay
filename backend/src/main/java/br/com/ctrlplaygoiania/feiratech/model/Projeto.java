@@ -170,6 +170,8 @@ public class Projeto {
 
     // ── Auditoria ─────────────────────────────────────────────────────────
 
+    private LocalDateTime dataSubmissao;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

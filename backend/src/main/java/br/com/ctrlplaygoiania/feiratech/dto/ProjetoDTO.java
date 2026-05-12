@@ -146,6 +146,7 @@ public class ProjetoDTO {
 
         private List<MaterialDTO.Response> materiais;
         private List<PapelariaItemDTO.Response> itensPapelaria;
+        private LocalDateTime dataSubmissao;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
     }

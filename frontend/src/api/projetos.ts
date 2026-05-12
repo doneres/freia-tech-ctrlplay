@@ -8,6 +8,7 @@ export interface ProjetoFilters {
   statusS4?: StatusSemana;
   statusProjeto?: StatusProjeto;
   search?: string;
+  itemEstoqueId?: string;
 }
 
 export async function listarProjetos(filters: ProjetoFilters = {}): Promise<Projeto[]> {

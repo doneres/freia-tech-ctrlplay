@@ -1,11 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Filter, Loader2, ChevronRight } from 'lucide-react';
 import { listarProjetos, type ProjetoFilters } from '../api/projetos';
+import { listarInstrutores } from '../api/usuarios';
+import { listarEstoque } from '../api/estoque';
 import type { Projeto, StatusProjeto, Turno, NivelTurma } from '../types';
 import StatusBadge from '../components/ui/StatusBadge';
 import { useAuth } from '../contexts/AuthContext';
+
+const FILTERS_KEY = 'projetos_filters';
+
+interface SavedFilters {
+  search: string;
+  statusProjeto: StatusProjeto | '';
+  turno: Turno | '';
+  nivelTurma: NivelTurma | '';
+  instrutorId: string;
+  itemEstoqueId: string;
+}
+
+function loadFilters(): SavedFilters {
+  try {
+    const raw = sessionStorage.getItem(FILTERS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+  return { search: '', statusProjeto: '', turno: '', nivelTurma: '', instrutorId: '', itemEstoqueId: '' };
+}
 
 const statusOptions: { value: StatusProjeto | ''; label: string }[] = [
   { value: '', label: 'Todos os status' },
@@ -34,23 +57,45 @@ const nivelOptions: { value: NivelTurma | ''; label: string }[] = [
 
 export default function ProjetosPage() {
   const { user } = useAuth();
-  const [search, setSearch] = useState('');
-  const [statusProjeto, setStatusProjeto] = useState<StatusProjeto | ''>('');
-  const [turno, setTurno] = useState<Turno | ''>('');
-  const [nivelTurma, setNivelTurma] = useState<NivelTurma | ''>('');
 
-  const filters: ProjetoFilters = {
+  const saved = loadFilters();
+  const [search, setSearch] = useState(saved.search);
+  const [statusProjeto, setStatusProjeto] = useState<StatusProjeto | ''>(saved.statusProjeto);
+  const [turno, setTurno] = useState<Turno | ''>(saved.turno);
+  const [nivelTurma, setNivelTurma] = useState<NivelTurma | ''>(saved.nivelTurma);
+  const [instrutorId, setInstrutorId] = useState(saved.instrutorId);
+  const [itemEstoqueId, setItemEstoqueId] = useState(saved.itemEstoqueId);
+
+  const isInstrutor = user?.perfil === 'INSTRUTOR';
+
+  useEffect(() => {
+    const filters: SavedFilters = { search, statusProjeto, turno, nivelTurma, instrutorId, itemEstoqueId };
+    sessionStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
+  }, [search, statusProjeto, turno, nivelTurma, instrutorId, itemEstoqueId]);
+
+  const queryFilters: ProjetoFilters = {
     search: search || undefined,
     statusProjeto: statusProjeto || undefined,
     turno: turno || undefined,
     nivelTurma: nivelTurma || undefined,
-    instrutorId:
-      user?.perfil === 'INSTRUTOR' ? user.id : undefined,
+    instrutorId: isInstrutor ? user.id : (instrutorId || undefined),
+    itemEstoqueId: itemEstoqueId || undefined,
   };
 
   const { data: projetos = [], isLoading } = useQuery<Projeto[]>({
-    queryKey: ['projetos', filters],
-    queryFn: () => listarProjetos(filters),
+    queryKey: ['projetos', queryFilters],
+    queryFn: () => listarProjetos(queryFilters),
+  });
+
+  const { data: instrutores = [] } = useQuery({
+    queryKey: ['instrutores'],
+    queryFn: listarInstrutores,
+    enabled: !isInstrutor,
+  });
+
+  const { data: itensEstoque = [] } = useQuery({
+    queryKey: ['estoque', { apenasAtivos: true }],
+    queryFn: () => listarEstoque({ apenasAtivos: true }),
   });
 
   const canCreateProject = user?.perfil === 'INSTRUTOR' || user?.perfil === 'ADMINISTRADOR';
@@ -132,6 +177,30 @@ export default function ProjetosPage() {
           >
             {nivelOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
+            ))}
+          </select>
+
+          {!isInstrutor && (
+            <select
+              value={instrutorId}
+              onChange={(e) => setInstrutorId(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+            >
+              <option value="">Todos os professores</option>
+              {instrutores.map((i) => (
+                <option key={i.id} value={i.id}>{i.nome}</option>
+              ))}
+            </select>
+          )}
+
+          <select
+            value={itemEstoqueId}
+            onChange={(e) => setItemEstoqueId(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+          >
+            <option value="">Todos os materiais</option>
+            {itensEstoque.map((item) => (
+              <option key={item.id} value={item.id}>{item.nome}</option>
             ))}
           </select>
         </div>

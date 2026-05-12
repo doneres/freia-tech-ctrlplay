@@ -35,9 +35,10 @@ public class ProjetoController {
             @RequestParam(required = false) NivelTurma nivelTurma,
             @RequestParam(required = false) StatusSemana statusS4,
             @RequestParam(required = false) StatusProjeto statusProjeto,
-            @RequestParam(required = false) String search) {
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) UUID itemEstoqueId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                projetoService.listarTodos(instrutorId, turno, nivelTurma, statusS4, statusProjeto, search)));
+                projetoService.listarTodos(instrutorId, turno, nivelTurma, statusS4, statusProjeto, search, itemEstoqueId)));
     }
 
     @GetMapping("/{id}")

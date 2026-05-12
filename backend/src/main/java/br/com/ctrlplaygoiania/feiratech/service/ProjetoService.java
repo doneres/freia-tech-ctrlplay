@@ -47,9 +47,9 @@ public class ProjetoService {
     @Transactional(readOnly = true)
     public List<ProjetoDTO.Response> listarTodos(
             UUID instrutorId, Turno turno, NivelTurma nivelTurma,
-            StatusSemana statusS4, StatusProjeto statusProjeto, String search) {
+            StatusSemana statusS4, StatusProjeto statusProjeto, String search, UUID itemEstoqueId) {
         return projetoRepository
-                .buscarComFiltros(instrutorId, turno, nivelTurma, statusS4, statusProjeto, search)
+                .buscarComFiltros(instrutorId, turno, nivelTurma, statusS4, statusProjeto, search, itemEstoqueId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -141,6 +141,7 @@ public class ProjetoService {
         }
 
         projeto.setStatusProjeto(StatusProjeto.SUBMETIDO);
+        projeto.setDataSubmissao(java.time.LocalDateTime.now());
         Projeto salvo = projetoRepository.save(projeto);
 
         String nomeInstrutor = projeto.getInstrutor().getNome();
@@ -387,6 +388,7 @@ public class ProjetoService {
                         .toList())
                 .materiais(projeto.getMateriais().stream().map(this::toMaterialResponse).toList())
                 .itensPapelaria(projeto.getItensPapelaria().stream().map(this::toPapelariaResponse).toList())
+                .dataSubmissao(projeto.getDataSubmissao())
                 .createdAt(projeto.getCreatedAt())
                 .updatedAt(projeto.getUpdatedAt())
                 .build();

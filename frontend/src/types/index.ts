@@ -136,6 +136,7 @@ export interface Projeto {
   observacoes: string | null;
   materiais: Material[];
   itensPapelaria: PapelariaItem[];
+  dataSubmissao: string | null;
   createdAt: string;
   updatedAt: string;
 }

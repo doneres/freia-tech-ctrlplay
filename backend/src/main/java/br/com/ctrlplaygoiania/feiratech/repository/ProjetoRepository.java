@@ -1,5 +1,6 @@
 package br.com.ctrlplaygoiania.feiratech.repository;
 
+import br.com.ctrlplaygoiania.feiratech.model.Material;
 import br.com.ctrlplaygoiania.feiratech.model.Projeto;
 import br.com.ctrlplaygoiania.feiratech.model.Usuario;
 import br.com.ctrlplaygoiania.feiratech.model.enums.NivelTurma;
@@ -39,6 +40,8 @@ public interface ProjetoRepository extends JpaRepository<Projeto, UUID> {
               AND (:search        IS NULL
                    OR LOWER(p.nomeProjeto)  LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
                    OR LOWER(p.codigoTurma)  LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))
+              AND (:itemEstoqueId IS NULL
+                   OR EXISTS (SELECT m FROM Material m WHERE m.projeto = p AND m.itemEstoque.id = :itemEstoqueId))
             ORDER BY p.createdAt DESC
             """)
     List<Projeto> buscarComFiltros(
@@ -47,5 +50,6 @@ public interface ProjetoRepository extends JpaRepository<Projeto, UUID> {
             @Param("nivelTurma")    NivelTurma nivelTurma,
             @Param("statusS4")      StatusSemana statusS4,
             @Param("statusProjeto") StatusProjeto statusProjeto,
-            @Param("search")        String search);
+            @Param("search")        String search,
+            @Param("itemEstoqueId") UUID itemEstoqueId);
 }

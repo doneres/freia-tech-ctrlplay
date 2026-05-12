@@ -614,6 +614,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function TabGeral({ projeto }: { projeto: Projeto }) {
   const turnoLabel: Record<string, string> = { MANHA: 'Manhã', TARDE: 'Tarde', NOITE: 'Noite' };
+  const formatDate = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : null;
   return (
     <div>
       <Section title="Identificação">
@@ -623,6 +625,7 @@ function TabGeral({ projeto }: { projeto: Projeto }) {
         <Field label="Turno" value={projeto.turno ? turnoLabel[projeto.turno] : null} />
         <Field label="Nível da turma" value={projeto.nivelTurma} />
         <Field label="Qtd. alunos" value={projeto.qtdAlunos} />
+        <Field label="Data de submissão" value={formatDate(projeto.dataSubmissao)} />
       </Section>
       {(projeto.integrantes?.length ?? 0) > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">

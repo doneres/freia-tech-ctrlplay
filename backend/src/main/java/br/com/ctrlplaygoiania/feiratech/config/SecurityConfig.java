@@ -3,6 +3,7 @@ package br.com.ctrlplaygoiania.feiratech.config;
 import br.com.ctrlplaygoiania.feiratech.security.JwtAuthenticationFilter;
 import br.com.ctrlplaygoiania.feiratech.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -93,6 +94,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/relatorios/minhas-solicitacoes")
                             .hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_INSTRUTOR")
                         .anyRequest().authenticated())
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint((req, res, ex) ->
+                                res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")))
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
