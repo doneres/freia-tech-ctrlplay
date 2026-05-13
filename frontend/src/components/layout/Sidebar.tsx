@@ -30,9 +30,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('sidebar-collapsed') === 'true'
   );
-  const [openGroups, setOpenGroups] = useState<Set<string>>(
-    () => new Set(['projetos', 'operacional', 'administracao'])
-  );
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('sidebar-groups');
+      if (saved) return new Set(JSON.parse(saved));
+    } catch {}
+    return new Set();
+  });
 
   function toggleCollapse() {
     const next = !collapsed;
@@ -44,6 +48,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     setOpenGroups(prev => {
       const next = new Set(prev);
       next.has(key) ? next.delete(key) : next.add(key);
+      localStorage.setItem('sidebar-groups', JSON.stringify([...next]));
       return next;
     });
   }
