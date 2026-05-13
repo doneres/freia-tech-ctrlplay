@@ -151,10 +151,18 @@ export interface PostForum {
   updatedAt: string;
 }
 
+export interface EventoResumo {
+  id: string;
+  nome: string;
+  dataEvento: string;
+  submissaoAberta: boolean;
+}
+
 export interface Projeto {
   id: string;
   nomeProjeto: string;
   instrutor: Usuario;
+  evento?: EventoResumo | null;
   statusProjeto: StatusProjeto;
   justificativaReprovacao: string | null;
   codigoTurma: string | null;

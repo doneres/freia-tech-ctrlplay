@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, FolderKanban, Users, LogOut, Package, Code2,
   FileSpreadsheet, X, CalendarDays, MessageSquare, ShoppingCart,
-  Settings, ChevronLeft, ChevronRight,
+  Settings, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -16,17 +16,36 @@ function getInitials(nome: string) {
   return nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
 }
 
+type NavItem = { to: string; end?: boolean; icon: ComponentType<{ size?: number; className?: string }>; label: string };
+
+interface NavGroup {
+  key: string;
+  label: string;
+  items: NavItem[];
+}
+
 export default function Sidebar({ open, onClose }: SidebarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('sidebar-collapsed') === 'true'
   );
+  const [openGroups, setOpenGroups] = useState<Set<string>>(
+    () => new Set(['projetos', 'operacional', 'administracao'])
+  );
 
   function toggleCollapse() {
     const next = !collapsed;
     setCollapsed(next);
     localStorage.setItem('sidebar-collapsed', String(next));
+  }
+
+  function toggleGroup(key: string) {
+    setOpenGroups(prev => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
   }
 
   const canManageUsers = user?.perfil === "ADMINISTRADOR";
@@ -44,6 +63,35 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     navigate("/login");
   }
 
+  const projetosItems: NavItem[] = [
+    { to: "/projetos", icon: FolderKanban, label: "Projetos" },
+    { to: "/agenda", icon: CalendarDays, label: "Agenda" },
+    { to: "/forum", icon: MessageSquare, label: "Fórum" },
+  ];
+
+  const operacionalItems: NavItem[] = [
+    ...(canViewSolicitacoes ? [{ to: "/solicitacoes", icon: ShoppingCart, label: "Solicitações" }] : []),
+    ...(canManageEstoque ? [{ to: "/estoque", icon: Package, label: "Estoque" }] : []),
+  ];
+
+  const administracaoItems: NavItem[] = [
+    ...(canManageFerramentas ? [{ to: "/ferramentas", icon: Code2, label: "Ferramentas" }] : []),
+    ...(canViewRelatorios ? [{ to: "/relatorios", icon: FileSpreadsheet, label: "Relatórios" }] : []),
+    ...(canManageUsers ? [{ to: "/usuarios", icon: Users, label: "Usuários" }] : []),
+  ];
+
+  const groups: NavGroup[] = [
+    ...(projetosItems.length > 0 ? [{ key: 'projetos', label: 'Projetos', items: projetosItems }] : []),
+    ...(operacionalItems.length > 0 ? [{ key: 'operacional', label: 'Operacional', items: operacionalItems }] : []),
+    ...(administracaoItems.length > 0 ? [{ key: 'administracao', label: 'Administração', items: administracaoItems }] : []),
+  ];
+
+  const allFlatItems: NavItem[] = [
+    ...projetosItems,
+    ...operacionalItems,
+    ...administracaoItems,
+  ];
+
   function deskLinkClass(isActive: boolean) {
     return `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
       collapsed ? "justify-center" : "justify-start"
@@ -58,20 +106,6 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     }`;
   }
 
-  type NavItem = { to: string; end?: boolean; icon: ComponentType<{ size?: number; className?: string }>; label: string };
-
-  const navItems: NavItem[] = [
-    { to: "/", end: true, icon: LayoutDashboard, label: "Dashboard" },
-    { to: "/projetos", icon: FolderKanban, label: "Projetos" },
-    { to: "/agenda", icon: CalendarDays, label: "Agenda" },
-    { to: "/forum", icon: MessageSquare, label: "Fórum" },
-    ...(canViewSolicitacoes ? [{ to: "/solicitacoes", icon: ShoppingCart, label: "Solicitações" }] : []),
-    ...(canManageEstoque ? [{ to: "/estoque", icon: Package, label: "Estoque" }] : []),
-    ...(canManageFerramentas ? [{ to: "/ferramentas", icon: Code2, label: "Ferramentas" }] : []),
-    ...(canViewRelatorios ? [{ to: "/relatorios", icon: FileSpreadsheet, label: "Relatórios" }] : []),
-    ...(canManageUsers ? [{ to: "/usuarios", icon: Users, label: "Usuários" }] : []),
-  ];
-
   return (
     <>
       {/* Desktop sidebar */}
@@ -80,7 +114,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           collapsed ? "w-16" : "w-64"
         }`}
       >
-        {/* Header com logo e toggle */}
+        {/* Header */}
         <div className="border-b border-gray-800 flex items-center px-2 py-4 shrink-0">
           {collapsed ? (
             <div className="flex-1 flex items-center justify-center">
@@ -108,26 +142,74 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
 
-        {/* Nav com scroll interno */}
-        <nav className="flex-1 px-2 py-4 space-y-1 overflow-y-auto min-h-0">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={'end' in item ? item.end : undefined}
-                title={collapsed ? item.label : undefined}
-                className={({ isActive }) => deskLinkClass(isActive)}
-              >
-                <Icon size={18} className="shrink-0" />
-                {!collapsed && <span className="truncate">{item.label}</span>}
-              </NavLink>
-            );
-          })}
+        {/* Nav */}
+        <nav className="flex-1 px-2 py-4 overflow-y-auto min-h-0">
+          {/* Dashboard standalone */}
+          <NavLink
+            to="/"
+            end
+            title={collapsed ? "Dashboard" : undefined}
+            className={({ isActive }) => deskLinkClass(isActive)}
+          >
+            <LayoutDashboard size={18} className="shrink-0" />
+            {!collapsed && <span className="truncate">Dashboard</span>}
+          </NavLink>
+
+          {collapsed ? (
+            /* Collapsed: render all items as flat icons */
+            <div className="mt-1 space-y-1">
+              {allFlatItems.map(item => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    title={item.label}
+                    className={({ isActive }) => deskLinkClass(isActive)}
+                  >
+                    <Icon size={18} className="shrink-0" />
+                  </NavLink>
+                );
+              })}
+            </div>
+          ) : (
+            /* Expanded: render groups with headers */
+            <div className="mt-3 space-y-4">
+              {groups.map(group => (
+                <div key={group.key}>
+                  <button
+                    onClick={() => toggleGroup(group.key)}
+                    className="w-full flex items-center justify-between px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-300 transition-colors"
+                  >
+                    <span>{group.label}</span>
+                    {openGroups.has(group.key) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  </button>
+                  {openGroups.has(group.key) && (
+                    <div className="mt-1 space-y-0.5">
+                      {group.items.map(item => {
+                        const Icon = item.icon;
+                        return (
+                          <NavLink
+                            key={item.to}
+                            to={item.to}
+                            end={item.end}
+                            className={({ isActive }) => deskLinkClass(isActive)}
+                          >
+                            <Icon size={18} className="shrink-0" />
+                            <span className="truncate">{item.label}</span>
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </nav>
 
-        {/* Rodapé: configurações, info do usuário, sair */}
+        {/* Footer */}
         <div className="px-2 py-4 border-t border-gray-800 shrink-0 space-y-1">
           <NavLink
             to="/configuracoes"
@@ -142,11 +224,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <div className="px-3 py-2">
               <div className="flex items-center gap-2 mb-1">
                 {user?.fotoPerfil ? (
-                  <img
-                    src={user.fotoPerfil}
-                    alt={user.nome}
-                    className="w-8 h-8 rounded-full object-cover shrink-0"
-                  />
+                  <img src={user.fotoPerfil} alt={user.nome} className="w-8 h-8 rounded-full object-cover shrink-0" />
                 ) : (
                   <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
                     {user?.nome ? getInitials(user.nome) : "?"}
@@ -164,17 +242,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           ) : (
             <div className="flex justify-center py-1">
               {user?.fotoPerfil ? (
-                <img
-                  src={user.fotoPerfil}
-                  alt={user.nome}
-                  title={user.nome}
-                  className="w-8 h-8 rounded-full object-cover"
-                />
+                <img src={user.fotoPerfil} alt={user.nome} title={user.nome} className="w-8 h-8 rounded-full object-cover" />
               ) : (
-                <div
-                  className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold"
-                  title={user?.nome}
-                >
+                <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold" title={user?.nome}>
                   {user?.nome ? getInitials(user.nome) : "?"}
                 </div>
               )}
@@ -211,30 +281,48 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={'end' in item ? item.end : undefined}
-                onClick={onClose}
-                className={({ isActive }) => mobLinkClass(isActive)}
-              >
-                <Icon size={18} />
-                {item.label}
-              </NavLink>
-            );
-          })}
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
+          <NavLink to="/" end onClick={onClose} className={({ isActive }) => mobLinkClass(isActive)}>
+            <LayoutDashboard size={18} />
+            Dashboard
+          </NavLink>
+
+          <div className="mt-3 space-y-4">
+            {groups.map(group => (
+              <div key={group.key}>
+                <button
+                  onClick={() => toggleGroup(group.key)}
+                  className="w-full flex items-center justify-between px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider hover:text-gray-300 transition-colors"
+                >
+                  <span>{group.label}</span>
+                  {openGroups.has(group.key) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                </button>
+                {openGroups.has(group.key) && (
+                  <div className="mt-1 space-y-0.5">
+                    {group.items.map(item => {
+                      const Icon = item.icon;
+                      return (
+                        <NavLink
+                          key={item.to}
+                          to={item.to}
+                          end={item.end}
+                          onClick={onClose}
+                          className={({ isActive }) => mobLinkClass(isActive)}
+                        >
+                          <Icon size={18} />
+                          {item.label}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </nav>
 
         <div className="px-3 py-4 border-t border-gray-800 shrink-0 space-y-1">
-          <NavLink
-            to="/configuracoes"
-            onClick={onClose}
-            className={({ isActive }) => mobLinkClass(isActive)}
-          >
+          <NavLink to="/configuracoes" onClick={onClose} className={({ isActive }) => mobLinkClass(isActive)}>
             <Settings size={18} />
             Configurações
           </NavLink>

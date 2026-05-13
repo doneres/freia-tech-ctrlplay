@@ -1,5 +1,6 @@
 package br.com.ctrlplaygoiania.feiratech.service;
 
+import br.com.ctrlplaygoiania.feiratech.dto.EventoDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.FerramentaSoftwareDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.ItemEstoqueDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.LinkCompraDTO;
@@ -9,6 +10,7 @@ import br.com.ctrlplaygoiania.feiratech.dto.ProjetoDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.UsuarioDTO;
 import br.com.ctrlplaygoiania.feiratech.exception.BusinessException;
 import br.com.ctrlplaygoiania.feiratech.exception.ResourceNotFoundException;
+import br.com.ctrlplaygoiania.feiratech.model.Evento;
 import br.com.ctrlplaygoiania.feiratech.model.FerramentaSoftware;
 import br.com.ctrlplaygoiania.feiratech.model.ItemEstoque;
 import br.com.ctrlplaygoiania.feiratech.model.LinkCompra;
@@ -22,6 +24,7 @@ import br.com.ctrlplaygoiania.feiratech.model.enums.StatusCompra;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusProjeto;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusSemana;
 import br.com.ctrlplaygoiania.feiratech.model.enums.Turno;
+import br.com.ctrlplaygoiania.feiratech.repository.EventoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.FerramentaSoftwareRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.ProjetoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.UsuarioRepository;
@@ -40,16 +43,19 @@ public class ProjetoService {
 
     private final ProjetoRepository projetoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final EventoRepository eventoRepository;
     private final FerramentaSoftwareRepository ferramentaSoftwareRepository;
     private final ItemEstoqueService itemEstoqueService;
     private final EmailService emailService;
+    private final EventoService eventoService;
 
     @Transactional(readOnly = true)
     public List<ProjetoDTO.Response> listarTodos(
             UUID instrutorId, Turno turno, NivelTurma nivelTurma,
-            StatusSemana statusS4, StatusProjeto statusProjeto, String search, UUID itemEstoqueId) {
+            StatusSemana statusS4, StatusProjeto statusProjeto, UUID eventoId,
+            String search, UUID itemEstoqueId) {
         return projetoRepository
-                .buscarComFiltros(instrutorId, turno, nivelTurma, statusS4, statusProjeto, search, itemEstoqueId)
+                .buscarComFiltros(instrutorId, turno, nivelTurma, statusS4, statusProjeto, eventoId, search, itemEstoqueId)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -238,6 +244,35 @@ public class ProjetoService {
     }
 
     @Transactional
+    public ProjetoDTO.Response vincularEvento(UUID projetoId, UUID eventoId, String emailUsuario) {
+        Projeto projeto = buscarEntidadePorId(projetoId);
+        Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
+                .orElseThrow(() -> new BusinessException("Usuário autenticado não encontrado"));
+
+        if (usuario.getPerfil() == PerfilUsuario.INSTRUTOR) {
+            if (!projeto.getInstrutor().getId().equals(usuario.getId())) {
+                throw new BusinessException("Você não tem permissão para vincular este projeto a um evento");
+            }
+            Evento evento = eventoRepository.findById(eventoId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Evento", eventoId));
+            EventoDTO.Response eventoResponse = eventoService.toResponse(evento);
+            if (!eventoResponse.isSubmissaoAberta()) {
+                throw new BusinessException("A submissão de projetos para este evento não está aberta");
+            }
+            projeto.setEvento(evento);
+        } else if (usuario.getPerfil() == PerfilUsuario.ADMINISTRADOR
+                || usuario.getPerfil() == PerfilUsuario.COORDENACAO) {
+            Evento evento = eventoRepository.findById(eventoId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Evento", eventoId));
+            projeto.setEvento(evento);
+        } else {
+            throw new BusinessException("Você não tem permissão para vincular projetos a eventos");
+        }
+
+        return toResponse(projetoRepository.save(projeto));
+    }
+
+    @Transactional
     public void deletar(UUID id, String emailUsuario) {
         Projeto projeto = buscarEntidadePorId(id);
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
@@ -373,6 +408,7 @@ public class ProjetoService {
                 .id(projeto.getId())
                 .nomeProjeto(projeto.getNomeProjeto())
                 .instrutor(toUsuarioResponse(projeto.getInstrutor()))
+                .evento(projeto.getEvento() != null ? eventoService.toResponse(projeto.getEvento()) : null)
                 .statusProjeto(projeto.getStatusProjeto())
                 .justificativaReprovacao(projeto.getJustificativaReprovacao())
                 .codigoTurma(projeto.getCodigoTurma())

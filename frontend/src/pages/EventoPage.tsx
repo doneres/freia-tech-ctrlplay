@@ -20,7 +20,7 @@ export default function EventoPage() {
   const [editing, setEditing] = useState<Evento | null>(null);
   const [form, setForm] = useState<EventoRequest>({ nome: '', dataEvento: '', descricao: '' });
 
-  if (user?.perfil !== 'ADMINISTRADOR') return <Navigate to="/" replace />;
+  if (user?.perfil !== 'ADMINISTRADOR' && user?.perfil !== 'COORDENACAO') return <Navigate to="/" replace />;
 
   const { data: eventos = [], isLoading } = useQuery({ queryKey: ['eventos'], queryFn: listarEventos });
 
@@ -50,12 +50,23 @@ export default function EventoPage() {
 
   function openEdit(e: Evento) {
     setEditing(e);
-    setForm({ nome: e.nome, dataEvento: toDatetimeLocal(e.dataEvento), descricao: e.descricao ?? '' });
+    setForm({
+      nome: e.nome,
+      dataEvento: toDatetimeLocal(e.dataEvento),
+      dataInicioSubmissao: e.dataInicioSubmissao ? toDatetimeLocal(e.dataInicioSubmissao) : '',
+      dataFimSubmissao: e.dataFimSubmissao ? toDatetimeLocal(e.dataFimSubmissao) : '',
+      descricao: e.descricao ?? '',
+    });
     setShowModal(true);
   }
 
   function save() {
-    const payload = { ...form, dataEvento: toISOFromLocal(form.dataEvento) };
+    const payload = {
+      ...form,
+      dataEvento: toISOFromLocal(form.dataEvento),
+      dataInicioSubmissao: form.dataInicioSubmissao ? toISOFromLocal(form.dataInicioSubmissao) : null,
+      dataFimSubmissao: form.dataFimSubmissao ? toISOFromLocal(form.dataFimSubmissao) : null,
+    };
     if (editing) {
       mutAtualizar.mutate({ id: editing.id, data: payload });
     } else {
@@ -102,10 +113,23 @@ export default function EventoPage() {
                     hour: '2-digit', minute: '2-digit',
                   })}
                 </p>
-                {e.descricao && <p className="text-xs text-gray-400 mt-1">{e.descricao}</p>}
-                {new Date(e.dataEvento) > new Date() && (
-                  <span className="mt-2 inline-block text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full">Próximo</span>
+                {e.dataInicioSubmissao && (
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Submissão: {new Date(e.dataInicioSubmissao).toLocaleDateString('pt-BR')}
+                    {e.dataFimSubmissao && ` → ${new Date(e.dataFimSubmissao).toLocaleDateString('pt-BR')}`}
+                  </p>
                 )}
+                {e.descricao && <p className="text-xs text-gray-400 mt-1">{e.descricao}</p>}
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  {new Date(e.dataEvento) > new Date() && (
+                    <span className="inline-block text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full">Próximo</span>
+                  )}
+                  {e.submissaoAberta ? (
+                    <span className="inline-block text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Submissão aberta</span>
+                  ) : e.dataInicioSubmissao ? (
+                    <span className="inline-block text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Submissão fechada</span>
+                  ) : null}
+                </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button onClick={() => openEdit(e)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
@@ -153,6 +177,26 @@ export default function EventoPage() {
                   onChange={e => setForm(f => ({ ...f, dataEvento: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Início das submissões</label>
+                  <input
+                    type="datetime-local"
+                    value={form.dataInicioSubmissao ?? ''}
+                    onChange={e => setForm(f => ({ ...f, dataInicioSubmissao: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Fim das submissões</label>
+                  <input
+                    type="datetime-local"
+                    value={form.dataFimSubmissao ?? ''}
+                    onChange={e => setForm(f => ({ ...f, dataFimSubmissao: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Descrição</label>

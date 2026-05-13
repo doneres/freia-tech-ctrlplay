@@ -103,11 +103,11 @@ public class SecurityConfig {
                             .hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_INSTRUTOR")
                         .requestMatchers(HttpMethod.GET, "/api/relatorios/minhas-solicitacoes")
                             .hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_INSTRUTOR")
-                        // Eventos: todos autenticados podem ler, só ADMINISTRADOR pode escrever
+                        // Eventos: todos autenticados podem ler, ADMINISTRADOR e COORDENACAO podem escrever
                         .requestMatchers(HttpMethod.GET, "/api/eventos/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/eventos/**").hasAuthority("ROLE_ADMINISTRADOR")
-                        .requestMatchers(HttpMethod.PUT, "/api/eventos/**").hasAuthority("ROLE_ADMINISTRADOR")
-                        .requestMatchers(HttpMethod.DELETE, "/api/eventos/**").hasAuthority("ROLE_ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/eventos/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
+                        .requestMatchers(HttpMethod.PUT, "/api/eventos/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
+                        .requestMatchers(HttpMethod.DELETE, "/api/eventos/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
                         // Agenda: todos autenticados
                         .requestMatchers(HttpMethod.GET, "/api/agenda/**").authenticated()
                         // Forum: só ADMIN pode fixar posts

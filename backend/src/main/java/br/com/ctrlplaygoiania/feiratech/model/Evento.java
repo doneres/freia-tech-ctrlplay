@@ -23,6 +23,10 @@ public class Evento {
     @Column(nullable = false)
     private LocalDateTime dataEvento;
 
+    private LocalDateTime dataInicioSubmissao;
+
+    private LocalDateTime dataFimSubmissao;
+
     @Column(columnDefinition = "TEXT")
     private String descricao;
 

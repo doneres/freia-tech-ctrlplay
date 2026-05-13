@@ -35,10 +35,11 @@ public class ProjetoController {
             @RequestParam(required = false) NivelTurma nivelTurma,
             @RequestParam(required = false) StatusSemana statusS4,
             @RequestParam(required = false) StatusProjeto statusProjeto,
+            @RequestParam(required = false) UUID eventoId,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) UUID itemEstoqueId) {
         return ResponseEntity.ok(ApiResponse.ok(
-                projetoService.listarTodos(instrutorId, turno, nivelTurma, statusS4, statusProjeto, search, itemEstoqueId)));
+                projetoService.listarTodos(instrutorId, turno, nivelTurma, statusS4, statusProjeto, eventoId, search, itemEstoqueId)));
     }
 
     @GetMapping("/{id}")
@@ -97,6 +98,15 @@ public class ProjetoController {
             @PathVariable UUID id, @RequestBody StatusSemanaRequest request) {
         return ResponseEntity.ok(ApiResponse.ok(
                 projetoService.atualizarStatusSemana(id, request.getSemana(), request.getStatus())));
+    }
+
+    @PatchMapping("/{id}/vincular-evento")
+    public ResponseEntity<ApiResponse<ProjetoDTO.Response>> vincularEvento(
+            @PathVariable UUID id,
+            @RequestBody ProjetoDTO.VincularEventoRequest request,
+            @AuthenticationPrincipal UserDetails principal) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                projetoService.vincularEvento(id, request.getEventoId(), principal.getUsername())));
     }
 
     // ── Request bodies dos endpoints PATCH ───────────────────────────────────

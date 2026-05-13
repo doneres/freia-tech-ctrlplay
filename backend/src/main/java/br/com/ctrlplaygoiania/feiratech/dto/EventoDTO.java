@@ -17,6 +17,8 @@ public class EventoDTO {
         @NotNull(message = "Data do evento é obrigatória")
         private LocalDateTime dataEvento;
 
+        private LocalDateTime dataInicioSubmissao;
+        private LocalDateTime dataFimSubmissao;
         private String descricao;
     }
 
@@ -25,7 +27,10 @@ public class EventoDTO {
         private UUID id;
         private String nome;
         private LocalDateTime dataEvento;
+        private LocalDateTime dataInicioSubmissao;
+        private LocalDateTime dataFimSubmissao;
         private String descricao;
+        private boolean submissaoAberta;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
     }

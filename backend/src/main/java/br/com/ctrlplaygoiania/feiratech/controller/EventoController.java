@@ -31,6 +31,11 @@ public class EventoController {
                 .orElse(ResponseEntity.ok(ApiResponse.ok(null)));
     }
 
+    @GetMapping("/com-submissao-aberta")
+    public ResponseEntity<ApiResponse<List<EventoDTO.Response>>> listarComSubmissaoAberta() {
+        return ResponseEntity.ok(ApiResponse.ok(eventoService.listarComSubmissaoAberta()));
+    }
+
     @PostMapping
     public ResponseEntity<ApiResponse<EventoDTO.Response>> criar(@RequestBody @Valid EventoDTO.Request dto) {
         return ResponseEntity.status(HttpStatus.CREATED)

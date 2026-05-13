@@ -127,7 +127,7 @@ function StockRow({ item }: { item: ItemEstoque }) {
   const color = pct === 0 ? 'bg-red-500' : pct <= 20 ? 'bg-orange-400' : 'bg-amber-400';
   return (
     <Link
-      to="/estoque"
+      to="/estoque?disponibilidade=baixo"
       className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors border-t border-gray-50 first:border-t-0"
     >
       <div className="min-w-0 flex-1">
@@ -261,7 +261,7 @@ export default function DashboardPage() {
               icon={Clock}
               colorBg="bg-orange-50"
               colorText="text-orange-500"
-              to="/projetos"
+              to="/projetos?status=SUBMETIDO"
             />
             <StatCard
               label="Em andamento"
@@ -269,7 +269,7 @@ export default function DashboardPage() {
               icon={AlertCircle}
               colorBg="bg-blue-50"
               colorText="text-blue-500"
-              to="/projetos"
+              to="/projetos?status=EM_ANDAMENTO"
             />
             <StatCard
               label="Concluídos"
@@ -277,7 +277,7 @@ export default function DashboardPage() {
               icon={CheckCircle}
               colorBg="bg-green-50"
               colorText="text-green-500"
-              to="/projetos"
+              to="/projetos?status=CONCLUIDO"
             />
           </div>
 
@@ -357,7 +357,7 @@ export default function DashboardPage() {
                       {estoqueBaixo.length > 0 ? `Estoque baixo (${estoqueBaixo.length})` : 'Estoque'}
                     </h2>
                   </div>
-                  <Link to="/estoque" className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1">
+                  <Link to={estoqueBaixo.length > 0 ? '/estoque?disponibilidade=baixo' : '/estoque'} className="text-xs text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1">
                     Ver estoque <ArrowRight size={12} />
                   </Link>
                 </div>
@@ -379,13 +379,13 @@ export default function DashboardPage() {
           {(stats.rascunhos > 0 || stats.reprovados > 0) && !isInstrutor && (
             <div className="flex flex-wrap gap-3 mt-5">
               {stats.rascunhos > 0 && (
-                <Link to="/projetos" className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-gray-300 transition-colors text-sm text-gray-600">
+                <Link to="/projetos?status=RASCUNHO" className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-3 hover:border-gray-300 transition-colors text-sm text-gray-600">
                   <span className="w-2 h-2 bg-gray-400 rounded-full" />
                   <span><strong className="text-gray-900">{stats.rascunhos}</strong> projeto{stats.rascunhos !== 1 ? 's' : ''} em rascunho</span>
                 </Link>
               )}
               {stats.reprovados > 0 && (
-                <Link to="/projetos" className="flex items-center gap-2 bg-white border border-red-200 rounded-xl px-4 py-3 hover:border-red-300 transition-colors text-sm text-red-600">
+                <Link to="/projetos?status=REPROVADO" className="flex items-center gap-2 bg-white border border-red-200 rounded-xl px-4 py-3 hover:border-red-300 transition-colors text-sm text-red-600">
                   <span className="w-2 h-2 bg-red-400 rounded-full" />
                   <span><strong className="text-red-700">{stats.reprovados}</strong> projeto{stats.reprovados !== 1 ? 's' : ''} reprovado{stats.reprovados !== 1 ? 's' : ''}</span>
                 </Link>

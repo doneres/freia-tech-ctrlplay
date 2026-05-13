@@ -41,6 +41,10 @@ public class Projeto {
     @JoinColumn(name = "instrutor_id", nullable = false)
     private Usuario instrutor;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "evento_id")
+    private Evento evento;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private StatusProjeto statusProjeto = StatusProjeto.RASCUNHO;

@@ -37,6 +37,7 @@ public interface ProjetoRepository extends JpaRepository<Projeto, UUID> {
               AND (:nivelTurma    IS NULL OR p.nivelTurma     = :nivelTurma)
               AND (:statusS4      IS NULL OR p.statusS4       = :statusS4)
               AND (:statusProjeto IS NULL OR p.statusProjeto  = :statusProjeto)
+              AND (:eventoId      IS NULL OR p.evento.id      = :eventoId)
               AND (:search        IS NULL
                    OR LOWER(p.nomeProjeto)  LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))
                    OR LOWER(p.codigoTurma)  LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))
@@ -50,6 +51,7 @@ public interface ProjetoRepository extends JpaRepository<Projeto, UUID> {
             @Param("nivelTurma")    NivelTurma nivelTurma,
             @Param("statusS4")      StatusSemana statusS4,
             @Param("statusProjeto") StatusProjeto statusProjeto,
+            @Param("eventoId")      UUID eventoId,
             @Param("search")        String search,
             @Param("itemEstoqueId") UUID itemEstoqueId);
 }

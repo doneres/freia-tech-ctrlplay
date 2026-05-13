@@ -32,6 +32,8 @@ public class ProjetoDTO {
         @NotNull(message = "Instrutor é obrigatório")
         private UUID instrutorId;
 
+        private UUID eventoId;
+
         private String codigoTurma;
         private Turno turno;
         private NivelTurma nivelTurma;
@@ -98,6 +100,7 @@ public class ProjetoDTO {
         private UUID id;
         private String nomeProjeto;
         private UsuarioDTO.Response instrutor;
+        private EventoDTO.Response evento;
         private StatusProjeto statusProjeto;
         private String justificativaReprovacao;
         private String codigoTurma;
@@ -149,5 +152,12 @@ public class ProjetoDTO {
         private LocalDateTime dataSubmissao;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class VincularEventoRequest {
+        private UUID eventoId;
     }
 }

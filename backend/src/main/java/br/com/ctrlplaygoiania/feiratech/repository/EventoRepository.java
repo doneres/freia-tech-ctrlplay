@@ -13,4 +13,13 @@ import java.util.UUID;
 public interface EventoRepository extends JpaRepository<Evento, UUID> {
     Optional<Evento> findTopByDataEventoAfterOrderByDataEventoAsc(LocalDateTime now);
     List<Evento> findAllByOrderByDataEventoDesc();
+
+    @org.springframework.data.jpa.repository.Query("""
+        SELECT e FROM Evento e
+        WHERE e.dataInicioSubmissao IS NOT NULL
+          AND e.dataInicioSubmissao <= :agora
+          AND (e.dataFimSubmissao IS NULL OR e.dataFimSubmissao >= :agora)
+        ORDER BY e.dataEvento ASC
+        """)
+    List<Evento> findComSubmissaoAberta(@org.springframework.data.repository.query.Param("agora") LocalDateTime agora);
 }

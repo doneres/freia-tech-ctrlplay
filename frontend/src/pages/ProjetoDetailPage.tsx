@@ -5,11 +5,14 @@ import {
   ArrowLeft, Loader2, CheckCircle, XCircle, Send, Trash2,
   ShoppingCart, X, Plus, Package, Cpu, Code2, Gamepad2, Paperclip,
   Search, ExternalLink, Pencil, FolderOpen, Globe, Video, Link as LinkIcon, Layers, PlayCircle, Flag,
+  CalendarDays,
 } from 'lucide-react';
 import {
   buscarProjeto, submeterProjeto, aprovarProjeto, reprovarProjeto,
   deletarProjeto, atualizarStatusSemana, iniciarAndamento, concluirProjeto,
+  vincularEvento,
 } from '../api/projetos';
+import { listarEventos, listarEventosComSubmissaoAberta, type Evento } from '../api/eventos';
 import {
   criarMaterial, criarDoEstoque, atualizarStatusCompra, deletarMaterial,
   type MaterialRequest,
@@ -57,6 +60,7 @@ export default function ProjetoDetailPage() {
 
   const [activeTab, setActiveTab] = useState<Tab>('geral');
   const [showReprovacaoModal, setShowReprovacaoModal] = useState(false);
+  const [showVincularModal, setShowVincularModal] = useState(false);
   const [justificativaReprovacao, setJustificativaReprovacao] = useState('');
   const [materialModalMode, setMaterialModalMode] = useState<MaterialMode | null>(null);
   const [papelariaModalMode, setPapelariaModalMode] = useState<PapelariaMode | null>(null);
@@ -83,6 +87,10 @@ export default function ProjetoDetailPage() {
   const mutDeletar = useMutation({ mutationFn: () => deletarProjeto(id!), onSuccess: () => navigate('/projetos') });
   const mutIniciarAndamento = useMutation({ mutationFn: () => iniciarAndamento(id!), onSuccess: invalidate });
   const mutConcluir = useMutation({ mutationFn: () => concluirProjeto(id!), onSuccess: invalidate });
+  const mutVincularEvento = useMutation({
+    mutationFn: (eventoId: string) => vincularEvento(id!, eventoId),
+    onSuccess: () => { invalidate(); setShowVincularModal(false); },
+  });
   const mutStatusSemana = useMutation({
     mutationFn: ({ semana, status }: { semana: string; status: StatusSemana }) => atualizarStatusSemana(id!, semana, status),
     onSuccess: invalidate,
@@ -130,6 +138,10 @@ export default function ProjetoDetailPage() {
 
   const canApprove = user?.perfil === 'COORDENACAO' || user?.perfil === 'ADMINISTRADOR';
   const canManage = user?.perfil === 'INSTRUTOR' || user?.perfil === 'ADMINISTRADOR';
+  const isInstrutor = user?.perfil === 'INSTRUTOR';
+  const canVincularEvento =
+    canApprove ||
+    (isInstrutor && projeto?.instrutor?.id === user?.id);
   const canDelete =
     user?.perfil === 'ADMINISTRADOR' ||
     (user?.perfil === 'INSTRUTOR' &&
@@ -232,6 +244,40 @@ export default function ProjetoDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Event info banner */}
+      {projeto.evento ? (
+        <div className="flex items-center gap-3 bg-brand-50 border border-brand-100 rounded-xl px-4 py-3 mb-4">
+          <CalendarDays size={16} className="text-brand-600 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-gray-900">{projeto.evento.nome}</p>
+            <p className="text-xs text-gray-500">
+              {new Date(projeto.evento.dataEvento).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+            </p>
+          </div>
+          {projeto.evento.submissaoAberta && (
+            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full shrink-0">Submissão aberta</span>
+          )}
+          {canVincularEvento && (
+            <button
+              onClick={() => setShowVincularModal(true)}
+              className="text-xs text-brand-600 hover:text-brand-700 font-medium shrink-0"
+            >
+              Alterar
+            </button>
+          )}
+        </div>
+      ) : canVincularEvento && (
+        <div className="mb-4">
+          <button
+            onClick={() => setShowVincularModal(true)}
+            className="flex items-center gap-2 text-sm border border-dashed border-brand-300 text-brand-600 hover:border-brand-500 hover:bg-brand-50 px-4 py-2.5 rounded-xl transition-colors"
+          >
+            <CalendarDays size={15} />
+            Vincular a um evento
+          </button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="border-b border-gray-200 mb-6">
@@ -357,6 +403,17 @@ export default function ProjetoDetailPage() {
           onConfirm={(data) => mutAddMaterialCompra.mutate(data)}
           isPending={mutAddMaterialCompra.isPending}
           error={mutAddMaterialCompra.error}
+        />
+      )}
+
+      {/* Modal: vincular evento */}
+      {showVincularModal && (
+        <VincularEventoModal
+          isInstrutor={isInstrutor}
+          isPending={mutVincularEvento.isPending}
+          error={mutVincularEvento.error}
+          onClose={() => setShowVincularModal(false)}
+          onConfirm={(eventoId) => mutVincularEvento.mutate(eventoId)}
         />
       )}
     </div>
@@ -1139,6 +1196,66 @@ function TabArquivos({ projetoId, canAdd, currentUserEmail, isAdmin }: {
         </div>
       )}
     </div>
+  );
+}
+
+function VincularEventoModal({
+  isInstrutor, isPending, error, onClose, onConfirm,
+}: {
+  isInstrutor: boolean;
+  isPending: boolean;
+  error: Error | null;
+  onClose: () => void;
+  onConfirm: (eventoId: string) => void;
+}) {
+  const [selected, setSelected] = useState('');
+
+  const { data: eventos = [], isLoading } = useQuery<Evento[]>({
+    queryKey: isInstrutor ? ['eventos-submissao-aberta'] : ['eventos'],
+    queryFn: isInstrutor ? listarEventosComSubmissaoAberta : listarEventos,
+  });
+
+  return (
+    <Modal title="Vincular a evento" onClose={onClose}>
+      {isLoading ? (
+        <div className="flex justify-center py-6"><Loader2 size={22} className="animate-spin text-brand-600" /></div>
+      ) : eventos.length === 0 ? (
+        <p className="text-sm text-gray-500 text-center py-4">
+          {isInstrutor ? 'Nenhum evento com submissão aberta no momento.' : 'Nenhum evento cadastrado.'}
+        </p>
+      ) : (
+        <div className="space-y-2 mb-4">
+          {eventos.map(e => (
+            <label key={e.id} className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${selected === e.id ? 'border-brand-500 bg-brand-50' : 'border-gray-200 hover:border-gray-300'}`}>
+              <input type="radio" name="evento" value={e.id} checked={selected === e.id} onChange={() => setSelected(e.id)} className="mt-0.5 accent-brand-600" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900">{e.nome}</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {new Date(e.dataEvento).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                </p>
+                {e.submissaoAberta && <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full mt-1 inline-block">Submissão aberta</span>}
+              </div>
+            </label>
+          ))}
+        </div>
+      )}
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-3">
+          {(error as any)?.response?.data?.message ?? 'Erro ao vincular evento.'}
+        </p>
+      )}
+      <div className="flex gap-3">
+        <button onClick={onClose} className="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg hover:bg-gray-50">Cancelar</button>
+        <button
+          onClick={() => selected && onConfirm(selected)}
+          disabled={!selected || isPending}
+          className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white text-sm font-medium py-2 rounded-lg"
+        >
+          {isPending && <Loader2 size={14} className="animate-spin" />}
+          Vincular
+        </button>
+      </div>
+    </Modal>
   );
 }
 

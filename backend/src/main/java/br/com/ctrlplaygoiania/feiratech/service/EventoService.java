@@ -32,12 +32,16 @@ public class EventoService {
                 .map(this::toResponse);
     }
 
+    @Transactional(readOnly = true)
+    public List<EventoDTO.Response> listarComSubmissaoAberta() {
+        return eventoRepository.findComSubmissaoAberta(LocalDateTime.now())
+                .stream().map(this::toResponse).toList();
+    }
+
     @Transactional
     public EventoDTO.Response criar(EventoDTO.Request dto) {
         Evento evento = new Evento();
-        evento.setNome(dto.getNome());
-        evento.setDataEvento(dto.getDataEvento());
-        evento.setDescricao(dto.getDescricao());
+        mapRequestToEvento(dto, evento);
         return toResponse(eventoRepository.save(evento));
     }
 
@@ -45,9 +49,7 @@ public class EventoService {
     public EventoDTO.Response atualizar(UUID id, EventoDTO.Request dto) {
         Evento evento = eventoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Evento", id));
-        evento.setNome(dto.getNome());
-        evento.setDataEvento(dto.getDataEvento());
-        evento.setDescricao(dto.getDescricao());
+        mapRequestToEvento(dto, evento);
         return toResponse(eventoRepository.save(evento));
     }
 
@@ -59,14 +61,30 @@ public class EventoService {
         eventoRepository.deleteById(id);
     }
 
-    private EventoDTO.Response toResponse(Evento e) {
+    public EventoDTO.Response toResponse(Evento e) {
+        LocalDateTime agora = LocalDateTime.now();
+        boolean aberta = e.getDataInicioSubmissao() != null
+                && !e.getDataInicioSubmissao().isAfter(agora)
+                && (e.getDataFimSubmissao() == null || !e.getDataFimSubmissao().isBefore(agora));
+
         return EventoDTO.Response.builder()
                 .id(e.getId())
                 .nome(e.getNome())
                 .dataEvento(e.getDataEvento())
+                .dataInicioSubmissao(e.getDataInicioSubmissao())
+                .dataFimSubmissao(e.getDataFimSubmissao())
                 .descricao(e.getDescricao())
+                .submissaoAberta(aberta)
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
+    }
+
+    private void mapRequestToEvento(EventoDTO.Request dto, Evento evento) {
+        evento.setNome(dto.getNome());
+        evento.setDataEvento(dto.getDataEvento());
+        evento.setDataInicioSubmissao(dto.getDataInicioSubmissao());
+        evento.setDataFimSubmissao(dto.getDataFimSubmissao());
+        evento.setDescricao(dto.getDescricao());
     }
 }

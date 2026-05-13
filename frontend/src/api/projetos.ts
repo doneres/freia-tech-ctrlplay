@@ -7,6 +7,7 @@ export interface ProjetoFilters {
   nivelTurma?: NivelTurma;
   statusS4?: StatusSemana;
   statusProjeto?: StatusProjeto;
+  eventoId?: string;
   search?: string;
   itemEstoqueId?: string;
 }
@@ -69,5 +70,10 @@ export async function iniciarAndamento(id: string): Promise<Projeto> {
 
 export async function concluirProjeto(id: string): Promise<Projeto> {
   const res = await api.patch<ApiResponse<Projeto>>(`/projetos/${id}/concluir`);
+  return res.data.data;
+}
+
+export async function vincularEvento(projetoId: string, eventoId: string): Promise<Projeto> {
+  const res = await api.patch<ApiResponse<Projeto>>(`/projetos/${projetoId}/vincular-evento`, { eventoId });
   return res.data.data;
 }

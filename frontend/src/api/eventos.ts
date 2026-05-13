@@ -5,14 +5,19 @@ export interface Evento {
   id: string;
   nome: string;
   dataEvento: string;
+  dataInicioSubmissao: string | null;
+  dataFimSubmissao: string | null;
   descricao: string | null;
+  submissaoAberta: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface EventoRequest {
   nome: string;
-  dataEvento: string; // ISO datetime
+  dataEvento: string;
+  dataInicioSubmissao?: string | null;
+  dataFimSubmissao?: string | null;
   descricao?: string;
 }
 
@@ -38,4 +43,9 @@ export async function atualizarEvento(id: string, data: EventoRequest): Promise<
 
 export async function deletarEvento(id: string): Promise<void> {
   await api.delete(`/eventos/${id}`);
+}
+
+export async function listarEventosComSubmissaoAberta(): Promise<Evento[]> {
+  const res = await api.get<ApiResponse<Evento[]>>('/eventos/com-submissao-aberta');
+  return res.data.data;
 }

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Search, Package, Cpu, Code2, Gamepad2, Paperclip,
@@ -112,12 +113,19 @@ const emptyForm: ItemEstoqueRequest = {
   quantidadeTotal: 1,
 };
 
+type DisponibilidadeFiltro = '' | 'baixo' | 'zerado' | 'disponivel';
+
 export default function EstoquePage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [tipoFiltro, setTipoFiltro] = useState<TipoItemEstoque | ''>('');
   const [apenasAtivos, setApenasAtivos] = useState(true);
+  const [disponibilidade, setDisponibilidade] = useState<DisponibilidadeFiltro>(() => {
+    const p = searchParams.get('disponibilidade');
+    return (p === 'baixo' || p === 'zerado' || p === 'disponivel') ? p : '';
+  });
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<'tipo' | 'campos'>('tipo');
@@ -130,6 +138,17 @@ export default function EstoquePage() {
     queryKey: ['estoque', { tipo: tipoFiltro || undefined, search: search || undefined, apenasAtivos }],
     queryFn: () => listarEstoque({ tipo: tipoFiltro || undefined, search: search || undefined, apenasAtivos }),
   });
+
+  const itensFiltrados = useMemo(() => {
+    if (!disponibilidade) return itens;
+    return itens.filter(item => {
+      const pct = item.quantidadeTotal > 0 ? item.quantidadeDisponivel / item.quantidadeTotal : 0;
+      if (disponibilidade === 'zerado') return item.quantidadeDisponivel === 0;
+      if (disponibilidade === 'baixo') return item.quantidadeDisponivel > 0 && (item.quantidadeDisponivel <= 2 || pct <= 0.3);
+      if (disponibilidade === 'disponivel') return item.quantidadeDisponivel > 2 && pct > 0.3;
+      return true;
+    });
+  }, [itens, disponibilidade]);
 
   const criarMutation = useMutation({
     mutationFn: criarItemEstoque,
@@ -229,7 +248,7 @@ export default function EstoquePage() {
             Estoque
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            {itens.length} item{itens.length !== 1 ? 's' : ''} encontrado{itens.length !== 1 ? 's' : ''}
+            {itensFiltrados.length} item{itensFiltrados.length !== 1 ? 's' : ''} encontrado{itensFiltrados.length !== 1 ? 's' : ''}
           </p>
         </div>
         {isAdmin && (
@@ -266,6 +285,16 @@ export default function EstoquePage() {
           <option value="PERIFERICO">Periférico</option>
           <option value="PAPELARIA">Papelaria</option>
         </select>
+        <select
+          value={disponibilidade}
+          onChange={(e) => setDisponibilidade(e.target.value as DisponibilidadeFiltro)}
+          className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+        >
+          <option value="">Toda disponibilidade</option>
+          <option value="disponivel">Em estoque</option>
+          <option value="baixo">Estoque baixo</option>
+          <option value="zerado">Estoque zerado</option>
+        </select>
         {isAdmin && (
           <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
             <input
@@ -284,7 +313,7 @@ export default function EstoquePage() {
         <div className="flex justify-center py-16">
           <Loader2 size={28} className="animate-spin text-brand-600" />
         </div>
-      ) : itens.length === 0 ? (
+      ) : itensFiltrados.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
           <Package size={40} className="text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500 text-sm">Nenhum item encontrado.</p>
@@ -296,7 +325,7 @@ export default function EstoquePage() {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {itens.map((item, i) => {
+          {itensFiltrados.map((item, i) => {
             const Icon = TIPO_ICONS[item.tipo];
             const disponivel = item.quantidadeDisponivel;
             const percentual = item.quantidadeTotal > 0 ? (disponivel / item.quantidadeTotal) * 100 : 0;

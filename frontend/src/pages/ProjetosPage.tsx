@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Search, Filter, Loader2, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { listarProjetos, type ProjetoFilters } from '../api/projetos';
 import { listarInstrutores } from '../api/usuarios';
 import { listarEstoque } from '../api/estoque';
+import { listarEventos } from '../api/eventos';
 import type { Projeto, StatusProjeto, Turno, NivelTurma } from '../types';
 import StatusBadge from '../components/ui/StatusBadge';
 import SearchableSelect from '../components/ui/SearchableSelect';
@@ -21,6 +22,7 @@ interface SavedFilters {
   nivelTurma: NivelTurma | '';
   instrutorId: string;
   itemEstoqueId: string;
+  eventoId: string;
   sortBy: SortKey;
 }
 
@@ -31,7 +33,7 @@ function loadFilters(): SavedFilters {
   } catch {
     // ignore
   }
-  return { search: '', statusProjeto: '', turno: '', nivelTurma: '', instrutorId: '', itemEstoqueId: '', sortBy: 'recentes' };
+  return { search: '', statusProjeto: '', turno: '', nivelTurma: '', instrutorId: '', itemEstoqueId: '', eventoId: '', sortBy: 'recentes' };
 }
 
 const statusOptions: { value: StatusProjeto | ''; label: string }[] = [
@@ -61,22 +63,28 @@ const nivelOptions: { value: NivelTurma | ''; label: string }[] = [
 
 export default function ProjetosPage() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const saved = loadFilters();
   const [search, setSearch] = useState(saved.search);
-  const [statusProjeto, setStatusProjeto] = useState<StatusProjeto | ''>(saved.statusProjeto);
+  const [statusProjeto, setStatusProjeto] = useState<StatusProjeto | ''>(() => {
+    const param = searchParams.get('status');
+    if (param && statusOptions.some(o => o.value === param)) return param as StatusProjeto;
+    return saved.statusProjeto;
+  });
   const [turno, setTurno] = useState<Turno | ''>(saved.turno);
   const [nivelTurma, setNivelTurma] = useState<NivelTurma | ''>(saved.nivelTurma);
   const [instrutorId, setInstrutorId] = useState(saved.instrutorId);
   const [itemEstoqueId, setItemEstoqueId] = useState(saved.itemEstoqueId);
+  const [eventoId, setEventoId] = useState(saved.eventoId ?? '');
   const [sortBy, setSortBy] = useState<SortKey>(saved.sortBy ?? 'recentes');
 
   const isInstrutor = user?.perfil === 'INSTRUTOR';
 
   useEffect(() => {
-    const filters: SavedFilters = { search, statusProjeto, turno, nivelTurma, instrutorId, itemEstoqueId, sortBy };
+    const filters: SavedFilters = { search, statusProjeto, turno, nivelTurma, instrutorId, itemEstoqueId, eventoId, sortBy };
     sessionStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
-  }, [search, statusProjeto, turno, nivelTurma, instrutorId, itemEstoqueId, sortBy]);
+  }, [search, statusProjeto, turno, nivelTurma, instrutorId, itemEstoqueId, eventoId, sortBy]);
 
   const queryFilters: ProjetoFilters = {
     search: search || undefined,
@@ -85,6 +93,7 @@ export default function ProjetosPage() {
     nivelTurma: nivelTurma || undefined,
     instrutorId: isInstrutor ? user.id : (instrutorId || undefined),
     itemEstoqueId: itemEstoqueId || undefined,
+    eventoId: eventoId || undefined,
   };
 
   const { data: projetos = [], isLoading } = useQuery<Projeto[]>({
@@ -114,6 +123,11 @@ export default function ProjetosPage() {
   const { data: itensEstoque = [] } = useQuery({
     queryKey: ['estoque', { apenasAtivos: true }],
     queryFn: () => listarEstoque({ apenasAtivos: true }),
+  });
+
+  const { data: eventos = [] } = useQuery({
+    queryKey: ['eventos'],
+    queryFn: listarEventos,
   });
 
   const canCreateProject = user?.perfil === 'INSTRUTOR' || user?.perfil === 'ADMINISTRADOR';
@@ -213,6 +227,19 @@ export default function ProjetosPage() {
           placeholder="Todos os materiais"
         />
 
+        {eventos.length > 0 && (
+          <select
+            value={eventoId}
+            onChange={(e) => setEventoId(e.target.value)}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+          >
+            <option value="">Todos os eventos</option>
+            {eventos.map(e => (
+              <option key={e.id} value={e.id}>{e.nome}</option>
+            ))}
+          </select>
+        )}
+
         <div className="flex items-center gap-2">
           <ArrowUpDown size={15} className="text-gray-400 shrink-0" />
           <select
@@ -267,6 +294,12 @@ export default function ProjetosPage() {
                 </div>
                 <p className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
                   <span>{projeto.instrutor?.nome}</span>
+                  {projeto.evento && (
+                    <>
+                      <span className="text-gray-300">•</span>
+                      <span className="text-brand-600">{projeto.evento.nome}</span>
+                    </>
+                  )}
                   {projeto.codigoTurma && (
                     <>
                       <span className="text-gray-300">•</span>
