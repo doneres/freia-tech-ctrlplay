@@ -51,6 +51,12 @@ public class EmailService {
     }
 
     @Async
+    public void notificarCodigoReset(String emailDestinatario, String nomeUsuario, String codigo) {
+        String assunto = "Código para redefinição de senha — FeiraTech";
+        enviar(emailDestinatario, assunto, templateCodigoReset(nomeUsuario, codigo));
+    }
+
+    @Async
     public void notificarSolicitacaoCompra(String emailCoordenacao, String nomeProjeto, String nomeItem) {
         String assunto = "Nova solicitação de compra: " + nomeItem;
         enviar(emailCoordenacao, assunto, templateSolicitacaoCompra(nomeProjeto, nomeItem));
@@ -167,6 +173,27 @@ public class EmailService {
               </div>
             </div></body></html>
             """.formatted(nomeProjeto, nomeItem);
+    }
+
+    private String templateCodigoReset(String nomeUsuario, String codigo) {
+        return """
+            <html><body style="font-family:sans-serif;color:#1f2937;padding:24px">
+            <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #e5e7eb;padding:32px">
+              <div style="border-bottom:3px solid #7c3aed;padding-bottom:16px;margin-bottom:24px">
+                <h1 style="color:#7c3aed;margin:0;font-size:22px">Ctrl+Play — Feira Tech</h1>
+              </div>
+              <h2 style="font-size:18px">Redefinição de senha</h2>
+              <p>Olá, <strong>%s</strong>. Recebemos uma solicitação de redefinição de senha para a sua conta.</p>
+              <p>Use o código abaixo para redefinir sua senha. Ele é válido por <strong>15 minutos</strong>.</p>
+              <div style="text-align:center;margin:32px 0">
+                <span style="font-size:36px;font-weight:bold;letter-spacing:12px;color:#7c3aed;background:#f5f3ff;padding:16px 24px;border-radius:8px;border:2px solid #7c3aed">%s</span>
+              </div>
+              <p style="color:#6b7280;font-size:13px">Se você não solicitou a redefinição de senha, ignore este email. Sua senha não será alterada.</p>
+              <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280">
+                Ctrl+Play Goiânia — Sistema de Gestão da Feira Tecnológica
+              </div>
+            </div></body></html>
+            """.formatted(nomeUsuario, codigo);
     }
 
     private String templateCompraReprovada(String nomeProjeto, String nomeItem, String justificativa) {

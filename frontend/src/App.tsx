@@ -15,6 +15,7 @@ import SolicitacoesPage from './pages/SolicitacoesPage';
 import AgendaPage from './pages/AgendaPage';
 import EventoPage from './pages/EventoPage';
 import ForumPage from './pages/ForumPage';
+import ConfiguracoesPage from './pages/ConfiguracoesPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,6 +44,7 @@ export default function App() {
               <Route path="agenda" element={<AgendaPage />} />
               <Route path="evento" element={<EventoPage />} />
               <Route path="forum" element={<ForumPage />} />
+              <Route path="configuracoes" element={<ConfiguracoesPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

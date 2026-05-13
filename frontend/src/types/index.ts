@@ -34,12 +34,16 @@ export interface AuthUser {
   email: string;
   perfil: PerfilUsuario;
   token: string;
+  telefone?: string;
+  fotoPerfil?: string;
 }
 
 export interface Usuario {
   id: string;
   nome: string;
   email: string;
+  telefone?: string;
+  fotoPerfil?: string;
   perfil: PerfilUsuario;
   ativo: boolean;
   createdAt: string;

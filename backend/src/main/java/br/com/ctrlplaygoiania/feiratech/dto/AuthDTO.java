@@ -23,5 +23,19 @@ public class AuthDTO {
         private String nome;
         private String email;
         private PerfilUsuario perfil;
+        private String telefone;
+        private String fotoPerfil;
+    }
+
+    @Data
+    public static class SolicitarResetRequest {
+        private String email;
+    }
+
+    @Data
+    public static class ConfirmarResetRequest {
+        private String email;
+        private String codigo;
+        private String novaSenha;
     }
 }

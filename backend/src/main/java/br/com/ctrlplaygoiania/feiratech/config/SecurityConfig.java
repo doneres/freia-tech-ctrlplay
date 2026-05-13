@@ -72,6 +72,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/projetos/*/concluir").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
                         // Materiais pendentes: apenas coordenação/admin podem ver a fila global
                         .requestMatchers(HttpMethod.GET, "/api/materiais/aguardando-aprovacao").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
+                        // Perfil próprio: qualquer autenticado pode ler e atualizar seus próprios dados
+                        .requestMatchers(HttpMethod.GET, "/api/usuarios/me").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/usuarios/me").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/usuarios/me/senha").authenticated()
                         // Gestão de usuários: somente ADMINISTRADOR pode escrever
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").hasAuthority("ROLE_ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").hasAuthority("ROLE_ADMINISTRADOR")

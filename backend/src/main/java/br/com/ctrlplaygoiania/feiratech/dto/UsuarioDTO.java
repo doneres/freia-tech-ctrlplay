@@ -49,10 +49,42 @@ public class UsuarioDTO {
         @Email(message = "Email inválido")
         private String email;
 
-        private String senha; // opcional — se em branco, mantém a senha atual
+        private String senha;
 
         @NotNull(message = "Perfil é obrigatório")
         private PerfilUsuario perfil;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MeRequest {
+
+        @NotBlank(message = "Nome é obrigatório")
+        private String nome;
+
+        @NotBlank(message = "Email é obrigatório")
+        @Email(message = "Email inválido")
+        private String email;
+
+        private String telefone;
+
+        private String fotoPerfil;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class AlterarSenhaRequest {
+
+        @NotBlank(message = "Senha atual é obrigatória")
+        private String senhaAtual;
+
+        @NotBlank(message = "Nova senha é obrigatória")
+        @Size(min = 6, message = "Nova senha deve ter no mínimo 6 caracteres")
+        private String novaSenha;
     }
 
     @Data
@@ -64,6 +96,8 @@ public class UsuarioDTO {
         private UUID id;
         private String nome;
         private String email;
+        private String telefone;
+        private String fotoPerfil;
         private PerfilUsuario perfil;
         private Boolean ativo;
         private LocalDateTime createdAt;

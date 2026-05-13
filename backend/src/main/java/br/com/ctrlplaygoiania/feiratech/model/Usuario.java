@@ -52,6 +52,17 @@ public class Usuario {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(length = 20)
+    private String telefone;
+
+    @Column(columnDefinition = "TEXT")
+    private String fotoPerfil;
+
+    @Column(length = 10)
+    private String resetCode;
+
+    private LocalDateTime resetCodeExpiry;
+
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 }
