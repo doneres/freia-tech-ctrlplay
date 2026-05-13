@@ -102,7 +102,7 @@ public class Projeto {
 
     private Integer qtdHardware;
 
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String linkProjeto;
 
     // ── Seção 4: Materiais e Infraestrutura ───────────────────────────────

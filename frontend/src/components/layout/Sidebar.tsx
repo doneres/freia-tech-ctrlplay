@@ -10,6 +10,7 @@ import {
   X,
   CalendarDays,
   MessageSquare,
+  ShoppingCart,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -33,6 +34,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     user?.perfil === "COORDENACAO" ||
     user?.perfil === "INSTRUTOR" ||
     user?.perfil === "MONITOR";
+  const canViewSolicitacoes =
+    user?.perfil === "ADMINISTRADOR" || user?.perfil === "COORDENACAO";
 
   function handleSignOut() {
     signOut();
@@ -88,6 +91,12 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <MessageSquare size={18} className="shrink-0" />
             <span className="hidden lg:block">Fórum</span>
           </NavLink>
+          {canViewSolicitacoes && (
+            <NavLink to="/solicitacoes" className={({ isActive }) => deskLinkClass(isActive)}>
+              <ShoppingCart size={18} className="shrink-0" />
+              <span className="hidden lg:block">Solicitações</span>
+            </NavLink>
+          )}
           {canManageEstoque && (
             <NavLink to="/estoque" className={({ isActive }) => deskLinkClass(isActive)}>
               <Package size={18} className="shrink-0" />
@@ -167,6 +176,12 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             <MessageSquare size={18} />
             Fórum
           </NavLink>
+          {canViewSolicitacoes && (
+            <NavLink to="/solicitacoes" onClick={onClose} className={({ isActive }) => mobLinkClass(isActive)}>
+              <ShoppingCart size={18} />
+              Solicitações
+            </NavLink>
+          )}
           {canManageEstoque && (
             <NavLink to="/estoque" onClick={onClose} className={({ isActive }) => mobLinkClass(isActive)}>
               <Package size={18} />

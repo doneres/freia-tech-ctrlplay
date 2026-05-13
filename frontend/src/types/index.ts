@@ -184,6 +184,21 @@ export interface Projeto {
   updatedAt: string;
 }
 
+export interface MaterialPendente {
+  id: string;
+  item: string;
+  quantidade: number;
+  unidade: string | null;
+  custoUnitario: number | null;
+  statusCompra: StatusCompra;
+  imagemUrl: string | null;
+  links: LinkCompra[];
+  projetoId: string;
+  nomeProjeto: string;
+  nomeInstrutor: string;
+  createdAt: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   message: string;

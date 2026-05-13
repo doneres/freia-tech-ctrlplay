@@ -202,6 +202,26 @@ public class ProjetoService {
     }
 
     @Transactional
+    public ProjetoDTO.Response iniciarAndamento(UUID id) {
+        Projeto projeto = buscarEntidadePorId(id);
+        if (projeto.getStatusProjeto() != StatusProjeto.APROVADO) {
+            throw new BusinessException("Apenas projetos APROVADOS podem ser iniciados");
+        }
+        projeto.setStatusProjeto(StatusProjeto.EM_ANDAMENTO);
+        return toResponse(projetoRepository.save(projeto));
+    }
+
+    @Transactional
+    public ProjetoDTO.Response concluir(UUID id) {
+        Projeto projeto = buscarEntidadePorId(id);
+        if (projeto.getStatusProjeto() != StatusProjeto.EM_ANDAMENTO) {
+            throw new BusinessException("Apenas projetos EM_ANDAMENTO podem ser concluídos");
+        }
+        projeto.setStatusProjeto(StatusProjeto.CONCLUIDO);
+        return toResponse(projetoRepository.save(projeto));
+    }
+
+    @Transactional
     public ProjetoDTO.Response atualizarStatusSemana(UUID id, String semana, StatusSemana status) {
         Projeto projeto = buscarEntidadePorId(id);
 

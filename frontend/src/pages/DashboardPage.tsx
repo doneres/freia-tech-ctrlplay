@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   FolderKanban, CheckCircle, Clock, AlertCircle, ChevronRight,
-  Loader2, Package, CalendarDays, AlertTriangle, ArrowRight,
+  Loader2, Package, CalendarDays, AlertTriangle, ArrowRight, ShoppingCart,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { listarProjetos } from '../api/projetos';
@@ -197,6 +197,20 @@ export default function DashboardPage() {
   // Recentes (para todos)
   const recentes = useMemo(() => projetos.slice(0, 5), [projetos]);
 
+  // Materiais aguardando aprovação (para coord/admin)
+  const materiaisPendentes = useMemo(() => {
+    if (!canSeeStock) return [];
+    const pending: { projetoId: string; projetoNome: string; item: string }[] = [];
+    projetos.forEach(p => {
+      p.materiais?.forEach(m => {
+        if (m.statusCompra === 'AGUARDANDO_APROVACAO') {
+          pending.push({ projetoId: p.id, projetoNome: p.nomeProjeto, item: m.item });
+        }
+      });
+    });
+    return pending;
+  }, [projetos, canSeeStock]);
+
   // Estoque com baixa disponibilidade (≤ 30% ou ≤ 2 unidades)
   const estoqueBaixo = useMemo(
     () => estoque
@@ -266,6 +280,26 @@ export default function DashboardPage() {
               to="/projetos"
             />
           </div>
+
+          {/* Coord/Admin: solicitações de compra pendentes */}
+          {canSeeStock && materiaisPendentes.length > 0 && (
+            <Link to="/solicitacoes"
+              className="flex items-center justify-between gap-3 bg-orange-50 border border-orange-200 rounded-xl px-5 py-3.5 mb-5 hover:border-orange-300 transition-colors group">
+              <div className="flex items-center gap-3 min-w-0">
+                <ShoppingCart size={16} className="text-orange-600 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-orange-800">
+                    {materiaisPendentes.length} solicitaç{materiaisPendentes.length !== 1 ? 'ões' : 'ão'} aguardando aprovação
+                  </p>
+                  <p className="text-xs text-orange-600 mt-0.5 truncate">
+                    {[...new Set(materiaisPendentes.map(m => m.projetoNome))].slice(0, 3).join(', ')}
+                    {[...new Set(materiaisPendentes.map(m => m.projetoNome))].length > 3 && '...'}
+                  </p>
+                </div>
+              </div>
+              <ArrowRight size={15} className="text-orange-400 group-hover:translate-x-1 transition-transform shrink-0" />
+            </Link>
+          )}
 
           {/* Instrutor: projetos que precisam de ação */}
           {isInstrutor && meusPendentes.length > 0 && (

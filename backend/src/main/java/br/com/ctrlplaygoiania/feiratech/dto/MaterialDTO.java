@@ -60,4 +60,23 @@ public class MaterialDTO {
         private ItemEstoqueDTO.Response itemEstoque;
         private LocalDateTime createdAt;
     }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PendenteResponse {
+        private UUID id;
+        private String item;
+        private Integer quantidade;
+        private String unidade;
+        private BigDecimal custoUnitario;
+        private StatusCompra statusCompra;
+        private String imagemUrl;
+        private List<LinkCompraDTO.Response> links;
+        private UUID projetoId;
+        private String nomeProjeto;
+        private String nomeInstrutor;
+        private LocalDateTime createdAt;
+    }
 }

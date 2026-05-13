@@ -40,7 +40,7 @@ public class LinkCompra {
     /**
      * URL direta do produto no site.
      */
-    @Column(nullable = false, length = 500)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String url;
 
     /**

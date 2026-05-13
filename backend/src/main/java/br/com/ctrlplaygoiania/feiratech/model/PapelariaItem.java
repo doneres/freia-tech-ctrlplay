@@ -35,7 +35,7 @@ public class PapelariaItem {
     @Column(nullable = false, length = 200)
     private String nome;
 
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String imagemUrl;
 
     @Column(nullable = false)

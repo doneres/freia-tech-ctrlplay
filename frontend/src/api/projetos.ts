@@ -61,3 +61,13 @@ export async function atualizarStatusSemana(
   const res = await api.patch<ApiResponse<Projeto>>(`/projetos/${id}/status-semana`, { semana, status });
   return res.data.data;
 }
+
+export async function iniciarAndamento(id: string): Promise<Projeto> {
+  const res = await api.patch<ApiResponse<Projeto>>(`/projetos/${id}/iniciar-andamento`);
+  return res.data.data;
+}
+
+export async function concluirProjeto(id: string): Promise<Projeto> {
+  const res = await api.patch<ApiResponse<Projeto>>(`/projetos/${id}/concluir`);
+  return res.data.data;
+}

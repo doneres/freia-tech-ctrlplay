@@ -67,6 +67,11 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**")
                         .permitAll()
+                        // Projetos: transições de status restritas a coordenação/admin
+                        .requestMatchers(HttpMethod.PATCH, "/api/projetos/*/iniciar-andamento").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
+                        .requestMatchers(HttpMethod.PATCH, "/api/projetos/*/concluir").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
+                        // Materiais pendentes: apenas coordenação/admin podem ver a fila global
+                        .requestMatchers(HttpMethod.GET, "/api/materiais/aguardando-aprovacao").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
                         // Gestão de usuários: somente ADMINISTRADOR pode escrever
                         .requestMatchers(HttpMethod.POST, "/api/usuarios").hasAuthority("ROLE_ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PUT, "/api/usuarios/**").hasAuthority("ROLE_ADMINISTRADOR")

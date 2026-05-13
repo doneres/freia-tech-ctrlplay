@@ -33,7 +33,7 @@ public class FerramentaSoftware {
     @Column(columnDefinition = "TEXT")
     private String descricao;
 
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String imagemUrl;
 
     @Column(nullable = false)

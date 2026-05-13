@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, Material, StatusCompra } from '../types';
+import type { ApiResponse, Material, MaterialPendente, StatusCompra } from '../types';
 
 export interface MaterialRequest {
   item: string;
@@ -50,5 +50,10 @@ export async function atualizarStatusCompra(
     status: statusCompra,
     justificativa,
   });
+  return res.data.data;
+}
+
+export async function listarSolicitacoesPendentes(): Promise<MaterialPendente[]> {
+  const res = await api.get<ApiResponse<MaterialPendente[]>>('/materiais/aguardando-aprovacao');
   return res.data.data;
 }

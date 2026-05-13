@@ -29,6 +29,11 @@ public class MaterialController {
         return ResponseEntity.ok(ApiResponse.ok(materialService.listarPorProjeto(projetoId)));
     }
 
+    @GetMapping("/aguardando-aprovacao")
+    public ResponseEntity<ApiResponse<List<MaterialDTO.PendenteResponse>>> listarAguardandoAprovacao() {
+        return ResponseEntity.ok(ApiResponse.ok(materialService.listarAguardandoAprovacao()));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<MaterialDTO.Response>> buscarPorId(@PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.ok(materialService.buscarPorId(id)));

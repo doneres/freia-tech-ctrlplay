@@ -11,6 +11,7 @@ import UsuariosPage from './pages/UsuariosPage';
 import EstoquePage from './pages/EstoquePage';
 import FerramentasPage from './pages/FerramentasPage';
 import RelatoriosPage from './pages/RelatoriosPage';
+import SolicitacoesPage from './pages/SolicitacoesPage';
 import AgendaPage from './pages/AgendaPage';
 import EventoPage from './pages/EventoPage';
 import ForumPage from './pages/ForumPage';
@@ -38,6 +39,7 @@ export default function App() {
               <Route path="estoque" element={<EstoquePage />} />
               <Route path="ferramentas" element={<FerramentasPage />} />
               <Route path="relatorios" element={<RelatoriosPage />} />
+              <Route path="solicitacoes" element={<SolicitacoesPage />} />
               <Route path="agenda" element={<AgendaPage />} />
               <Route path="evento" element={<EventoPage />} />
               <Route path="forum" element={<ForumPage />} />

@@ -42,6 +42,27 @@ public class MaterialService {
     }
 
     @Transactional(readOnly = true)
+    public List<MaterialDTO.PendenteResponse> listarAguardandoAprovacao() {
+        return materialRepository.findByStatusCompra(StatusCompra.AGUARDANDO_APROVACAO)
+                .stream()
+                .map(m -> MaterialDTO.PendenteResponse.builder()
+                        .id(m.getId())
+                        .item(m.getItem())
+                        .quantidade(m.getQuantidade())
+                        .unidade(m.getUnidade())
+                        .custoUnitario(m.getCustoUnitario())
+                        .statusCompra(m.getStatusCompra())
+                        .imagemUrl(m.getImagemUrl())
+                        .links(m.getLinks().stream().map(this::toLinkCompraResponse).toList())
+                        .projetoId(m.getProjeto().getId())
+                        .nomeProjeto(m.getProjeto().getNomeProjeto())
+                        .nomeInstrutor(m.getProjeto().getInstrutor().getNome())
+                        .createdAt(m.getCreatedAt())
+                        .build())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public MaterialDTO.Response buscarPorId(UUID id) {
         return toResponse(buscarEntidadePorId(id));
     }

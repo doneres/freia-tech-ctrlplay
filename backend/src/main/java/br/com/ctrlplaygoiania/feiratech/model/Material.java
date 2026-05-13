@@ -57,7 +57,7 @@ public class Material {
     @Column(columnDefinition = "TEXT")
     private String justificativaReprovacao;
 
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String imagemUrl;
 
     @OneToMany(mappedBy = "material", cascade = CascadeType.ALL, orphanRemoval = true)

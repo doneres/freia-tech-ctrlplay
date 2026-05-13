@@ -50,7 +50,7 @@ public class ItemEstoque {
     @Column(nullable = false)
     private Integer quantidadeDisponivel = 0;
 
-    @Column(length = 500)
+    @Column(columnDefinition = "TEXT")
     private String imagemUrl;
 
     @Column(nullable = false)

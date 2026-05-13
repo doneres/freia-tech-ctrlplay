@@ -4,11 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, Loader2, CheckCircle, XCircle, Send, Trash2,
   ShoppingCart, X, Plus, Package, Cpu, Code2, Gamepad2, Paperclip,
-  Search, ExternalLink, Pencil, FolderOpen, Globe, Video, Link as LinkIcon, Layers,
+  Search, ExternalLink, Pencil, FolderOpen, Globe, Video, Link as LinkIcon, Layers, PlayCircle, Flag,
 } from 'lucide-react';
 import {
   buscarProjeto, submeterProjeto, aprovarProjeto, reprovarProjeto,
-  deletarProjeto, atualizarStatusSemana,
+  deletarProjeto, atualizarStatusSemana, iniciarAndamento, concluirProjeto,
 } from '../api/projetos';
 import {
   criarMaterial, criarDoEstoque, atualizarStatusCompra, deletarMaterial,
@@ -81,6 +81,8 @@ export default function ProjetoDetailPage() {
     onSuccess: () => { invalidate(); setShowReprovacaoModal(false); },
   });
   const mutDeletar = useMutation({ mutationFn: () => deletarProjeto(id!), onSuccess: () => navigate('/projetos') });
+  const mutIniciarAndamento = useMutation({ mutationFn: () => iniciarAndamento(id!), onSuccess: invalidate });
+  const mutConcluir = useMutation({ mutationFn: () => concluirProjeto(id!), onSuccess: invalidate });
   const mutStatusSemana = useMutation({
     mutationFn: ({ semana, status }: { semana: string; status: StatusSemana }) => atualizarStatusSemana(id!, semana, status),
     onSuccess: invalidate,
@@ -200,6 +202,20 @@ export default function ProjetoDetailPage() {
                   <XCircle size={14} /> Reprovar
                 </button>
               </>
+            )}
+            {canApprove && projeto.statusProjeto === 'APROVADO' && (
+              <button onClick={() => { if (confirm('Iniciar andamento do projeto?')) mutIniciarAndamento.mutate(); }}
+                disabled={mutIniciarAndamento.isPending}
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white text-sm font-medium px-3 py-2 rounded-lg">
+                <PlayCircle size={14} /> Iniciar
+              </button>
+            )}
+            {canApprove && projeto.statusProjeto === 'EM_ANDAMENTO' && (
+              <button onClick={() => { if (confirm('Marcar projeto como concluído?')) mutConcluir.mutate(); }}
+                disabled={mutConcluir.isPending}
+                className="flex items-center gap-1.5 bg-green-700 hover:bg-green-800 disabled:opacity-60 text-white text-sm font-medium px-3 py-2 rounded-lg">
+                <Flag size={14} /> Concluir
+              </button>
             )}
             {canDelete && (
               <button onClick={() => { if (confirm('Excluir projeto?')) mutDeletar.mutate(); }} disabled={mutDeletar.isPending}

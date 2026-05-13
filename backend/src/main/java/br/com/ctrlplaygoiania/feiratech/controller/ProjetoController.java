@@ -82,6 +82,16 @@ public class ProjetoController {
                 projetoService.reprovar(id, request.getJustificativa())));
     }
 
+    @PatchMapping("/{id}/iniciar-andamento")
+    public ResponseEntity<ApiResponse<ProjetoDTO.Response>> iniciarAndamento(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(projetoService.iniciarAndamento(id)));
+    }
+
+    @PatchMapping("/{id}/concluir")
+    public ResponseEntity<ApiResponse<ProjetoDTO.Response>> concluir(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(projetoService.concluir(id)));
+    }
+
     @PatchMapping("/{id}/status-semana")
     public ResponseEntity<ApiResponse<ProjetoDTO.Response>> atualizarStatusSemana(
             @PathVariable UUID id, @RequestBody StatusSemanaRequest request) {
