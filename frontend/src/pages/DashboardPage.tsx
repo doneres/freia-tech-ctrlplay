@@ -3,12 +3,13 @@ import { useQuery } from '@tanstack/react-query';
 import {
   FolderKanban, CheckCircle, Clock, AlertCircle, ChevronRight,
   Loader2, Package, CalendarDays, AlertTriangle, ArrowRight, ShoppingCart,
+  ShoppingBag,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { listarProjetos } from '../api/projetos';
 import { listarEstoque } from '../api/estoque';
 import { buscarProximoEvento } from '../api/eventos';
-import type { Projeto, ItemEstoque } from '../types';
+import type { Projeto, ItemEstoque, StatusSemana } from '../types';
 import StatusBadge from '../components/ui/StatusBadge';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -114,6 +115,58 @@ function ProjectRow({ projeto }: { projeto: Projeto }) {
         <StatusBadge type="projeto" value={projeto.statusProjeto} />
         <ChevronRight size={14} className="text-gray-300" />
       </div>
+    </Link>
+  );
+}
+
+// ── Instructor project card ───────────────────────────────────────────────────
+
+const SEMANA_COLOR: Record<StatusSemana, string> = {
+  NAO_INICIADO: 'bg-gray-200',
+  EM_ANDAMENTO: 'bg-blue-400',
+  CONCLUIDO: 'bg-green-500',
+  ATRASADO: 'bg-red-400',
+};
+
+function InstructorProjectCard({ projeto }: { projeto: Projeto }) {
+  const hasMaterialPendente = projeto.materiais?.some(
+    m => m.statusCompra === 'AGUARDANDO_APROVACAO'
+  );
+  const semanas: { label: string; status: StatusSemana }[] = [
+    { label: 'S1', status: projeto.statusS1 },
+    { label: 'S2', status: projeto.statusS2 },
+    { label: 'S3', status: projeto.statusS3 },
+    { label: 'S4', status: projeto.statusS4 },
+  ];
+
+  return (
+    <Link
+      to={`/projetos/${projeto.id}`}
+      className="flex items-start justify-between px-5 py-4 hover:bg-gray-50 transition-colors border-t border-gray-50 first:border-t-0 gap-3"
+    >
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 flex-wrap mb-2">
+          <p className="text-sm font-medium text-gray-900 truncate">{projeto.nomeProjeto ?? 'Sem nome'}</p>
+          <StatusBadge type="projeto" value={projeto.statusProjeto} />
+          {hasMaterialPendente && (
+            <span className="flex items-center gap-1 text-[10px] font-semibold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+              <ShoppingBag size={10} /> Material pendente
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {semanas.map(s => (
+            <div key={s.label} className="flex items-center gap-1">
+              <div className={`w-2.5 h-2.5 rounded-full ${SEMANA_COLOR[s.status]}`} title={s.status} />
+              <span className="text-[10px] text-gray-400 font-medium">{s.label}</span>
+            </div>
+          ))}
+          {projeto.codigoTurma && (
+            <span className="text-xs text-gray-400 ml-1">· {projeto.codigoTurma}</span>
+          )}
+        </div>
+      </div>
+      <ChevronRight size={14} className="text-gray-300 shrink-0 mt-1" />
     </Link>
   );
 }
@@ -316,7 +369,7 @@ export default function DashboardPage() {
                 </Link>
               </div>
               <div>
-                {meusPendentes.map(p => <ProjectRow key={p.id} projeto={p} />)}
+                {meusPendentes.map(p => <InstructorProjectCard key={p.id} projeto={p} />)}
               </div>
             </div>
           )}
@@ -342,7 +395,9 @@ export default function DashboardPage() {
                   <p className="text-center text-gray-400 py-8 text-sm">Nenhum projeto.</p>
                 ) : (
                   (canSeeAllProjects && aguardandoRevisao.length > 0 ? aguardandoRevisao : recentes)
-                    .map(p => <ProjectRow key={p.id} projeto={p} />)
+                    .map(p => isInstrutor
+                      ? <InstructorProjectCard key={p.id} projeto={p} />
+                      : <ProjectRow key={p.id} projeto={p} />)
                 )}
               </div>
             </div>
