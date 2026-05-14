@@ -8,6 +8,7 @@ import {
   listarEventos, criarEvento, atualizarEvento, deletarEvento,
   type Evento, type EventoRequest,
 } from '../api/eventos';
+import { listarTiposEventoAtivos } from '../api/tipos-evento';
 import { useAuth } from '../contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 
@@ -25,6 +26,7 @@ const emptyForm: EventoRequest = {
   dataInicioSubmissao: '',
   dataFimSubmissao: '',
   descricao: '',
+  tipoEventoId: null,
   localEvento: '',
   qtdMesas: null,
   qtdComputadores: null,
@@ -57,6 +59,7 @@ export default function EventoPage() {
   if (user?.perfil !== 'ADMINISTRADOR' && user?.perfil !== 'COORDENACAO') return <Navigate to="/" replace />;
 
   const { data: eventos = [], isLoading } = useQuery({ queryKey: ['eventos'], queryFn: listarEventos });
+  const { data: tiposEvento = [] } = useQuery({ queryKey: ['tipos-evento-ativos'], queryFn: listarTiposEventoAtivos });
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ['eventos'] });
@@ -92,6 +95,7 @@ export default function EventoPage() {
       dataInicioSubmissao: e.dataInicioSubmissao ? toDatetimeLocal(e.dataInicioSubmissao) : '',
       dataFimSubmissao: e.dataFimSubmissao ? toDatetimeLocal(e.dataFimSubmissao) : '',
       descricao: e.descricao ?? '',
+      tipoEventoId: e.tipoEvento?.id ?? null,
       localEvento: e.localEvento ?? '',
       qtdMesas: e.qtdMesas,
       qtdComputadores: e.qtdComputadores,
@@ -164,6 +168,14 @@ export default function EventoPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-semibold text-gray-900">{e.nome}</p>
+                    {e.tipoEvento && (
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full text-white"
+                        style={{ background: e.tipoEvento.cor ?? '#7c3aed' }}
+                      >
+                        {e.tipoEvento.nome}
+                      </span>
+                    )}
                     {e.submissaoAberta ? (
                       <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Submissão aberta</span>
                     ) : e.dataInicioSubmissao ? (
@@ -257,6 +269,19 @@ export default function EventoPage() {
 
               {activeSection === 'basico' && (
                 <>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Tipo de evento</label>
+                    <select
+                      value={form.tipoEventoId ?? ''}
+                      onChange={e => setForm(f => ({ ...f, tipoEventoId: e.target.value || null }))}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    >
+                      <option value="">— Sem tipo definido —</option>
+                      {tiposEvento.map(t => (
+                        <option key={t.id} value={t.id}>{t.nome}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Nome do evento <span className="text-red-500">*</span></label>
                     <input

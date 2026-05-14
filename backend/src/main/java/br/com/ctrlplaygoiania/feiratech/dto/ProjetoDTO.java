@@ -81,6 +81,9 @@ public class ProjetoDTO {
 
         @Valid
         private List<MaterialDTO.Request> materiais;
+
+        // ── Formulário dinâmico ───────────────────────────────────────────────
+        private String dadosFormulario; // JSON map of dynamic field answers
     }
 
     @lombok.Data
@@ -149,6 +152,13 @@ public class ProjetoDTO {
 
         private List<MaterialDTO.Response> materiais;
         private List<PapelariaItemDTO.Response> itensPapelaria;
+
+        // ── Formulário dinâmico e workflow ────────────────────────────────────
+        private String dadosFormulario;
+        private Integer schemaVersion;
+        private Integer etapaAtualOrdem;
+        private List<EtapaAprovacaoDTO.Response> etapas;
+
         private LocalDateTime dataSubmissao;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;

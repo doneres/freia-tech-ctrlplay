@@ -1,5 +1,6 @@
 package br.com.ctrlplaygoiania.feiratech.service;
 
+import br.com.ctrlplaygoiania.feiratech.dto.EtapaAprovacaoDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.EventoDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.FerramentaSoftwareDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.ItemEstoqueDTO;
@@ -10,6 +11,7 @@ import br.com.ctrlplaygoiania.feiratech.dto.ProjetoDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.UsuarioDTO;
 import br.com.ctrlplaygoiania.feiratech.exception.BusinessException;
 import br.com.ctrlplaygoiania.feiratech.exception.ResourceNotFoundException;
+import br.com.ctrlplaygoiania.feiratech.model.EtapaAprovacao;
 import br.com.ctrlplaygoiania.feiratech.model.Evento;
 import br.com.ctrlplaygoiania.feiratech.model.FerramentaSoftware;
 import br.com.ctrlplaygoiania.feiratech.model.ItemEstoque;
@@ -17,37 +19,48 @@ import br.com.ctrlplaygoiania.feiratech.model.LinkCompra;
 import br.com.ctrlplaygoiania.feiratech.model.Material;
 import br.com.ctrlplaygoiania.feiratech.model.PapelariaItem;
 import br.com.ctrlplaygoiania.feiratech.model.Projeto;
+import br.com.ctrlplaygoiania.feiratech.model.TipoEvento;
 import br.com.ctrlplaygoiania.feiratech.model.Usuario;
 import br.com.ctrlplaygoiania.feiratech.model.enums.NivelTurma;
 import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusCompra;
+import br.com.ctrlplaygoiania.feiratech.model.enums.StatusEtapaAprovacao;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusProjeto;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusSemana;
 import br.com.ctrlplaygoiania.feiratech.model.enums.Turno;
+import br.com.ctrlplaygoiania.feiratech.repository.EtapaAprovacaoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.EventoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.FerramentaSoftwareRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.ProjetoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.UsuarioRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ProjetoService {
 
     private final ProjetoRepository projetoRepository;
     private final UsuarioRepository usuarioRepository;
     private final EventoRepository eventoRepository;
     private final FerramentaSoftwareRepository ferramentaSoftwareRepository;
+    private final EtapaAprovacaoRepository etapaAprovacaoRepository;
     private final ItemEstoqueService itemEstoqueService;
     private final EmailService emailService;
     private final EventoService eventoService;
+    private final EtapaAprovacaoService etapaAprovacaoService;
+    private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
     public List<ProjetoDTO.Response> listarTodos(
@@ -139,24 +152,115 @@ public class ProjetoService {
                 && projeto.getStatusProjeto() != StatusProjeto.REPROVADO) {
             throw new BusinessException("Apenas projetos em RASCUNHO ou REPROVADO podem ser submetidos");
         }
-        if (projeto.getNomeProjeto() == null || projeto.getNomeProjeto().isBlank()) {
-            throw new BusinessException("Nome do projeto é obrigatório para submeter");
+
+        TipoEvento tipoEvento = projeto.getEvento() != null ? projeto.getEvento().getTipoEvento() : null;
+        boolean legado = tipoEvento == null || Boolean.TRUE.equals(tipoEvento.getUsaFormularioLegado());
+
+        if (legado) {
+            if (projeto.getNomeProjeto() == null || projeto.getNomeProjeto().isBlank()) {
+                throw new BusinessException("Nome do projeto é obrigatório para submeter");
+            }
+            if (projeto.getOds() == null || projeto.getOds().isBlank()) {
+                throw new BusinessException("ODS é obrigatório para submeter");
+            }
+        } else {
+            validarDadosFormulario(projeto, tipoEvento);
         }
-        if (projeto.getOds() == null || projeto.getOds().isBlank()) {
-            throw new BusinessException("ODS é obrigatório para submeter");
-        }
+
+        // Reset previous workflow state when resubmitting
+        projeto.getEtapas().clear();
+        projeto.setEtapaAtualOrdem(null);
 
         projeto.setStatusProjeto(StatusProjeto.SUBMETIDO);
         projeto.setDataSubmissao(java.time.LocalDateTime.now());
-        Projeto salvo = projetoRepository.save(projeto);
 
-        String nomeInstrutor = projeto.getInstrutor().getNome();
-        String nomeProjeto = projeto.getNomeProjeto();
-        usuarioRepository.findByPerfil(PerfilUsuario.COORDENACAO).forEach(coord ->
-                emailService.notificarProjetoSubmetido(coord.getEmail(), nomeProjeto, nomeInstrutor)
+        if (!legado && tipoEvento.getWorkflowConfig() != null) {
+            projeto.setSchemaVersion(tipoEvento.getSchemaVersion());
+            Projeto salvo = projetoRepository.save(projeto);
+            iniciarWorkflow(salvo, tipoEvento);
+            return toResponse(salvo);
+        } else {
+            Projeto salvo = projetoRepository.save(projeto);
+            String nomeInstrutor = projeto.getInstrutor().getNome();
+            String nomeProjeto = projeto.getNomeProjeto();
+            usuarioRepository.findByPerfil(PerfilUsuario.COORDENACAO).forEach(coord ->
+                    emailService.notificarProjetoSubmetido(coord.getEmail(), nomeProjeto, nomeInstrutor)
+            );
+            return toResponse(salvo);
+        }
+    }
+
+    private void validarDadosFormulario(Projeto projeto, TipoEvento tipoEvento) {
+        if (tipoEvento.getFormSchema() == null || tipoEvento.getFormSchema().isBlank()) return;
+
+        Map<String, Object> dados;
+        try {
+            String raw = projeto.getDadosFormulario();
+            dados = raw != null && !raw.isBlank()
+                    ? objectMapper.readValue(raw, new TypeReference<>() {})
+                    : Map.of();
+        } catch (Exception e) {
+            throw new BusinessException("dadosFormulario inválido: não é um JSON válido");
+        }
+
+        List<Map<String, Object>> campos;
+        try {
+            campos = objectMapper.readValue(tipoEvento.getFormSchema(), new TypeReference<>() {});
+        } catch (Exception e) {
+            log.warn("formSchema inválido no TipoEvento {}: {}", tipoEvento.getId(), e.getMessage());
+            return;
+        }
+
+        for (Map<String, Object> campo : campos) {
+            String fieldId = (String) campo.get("id");
+            Boolean required = (Boolean) campo.getOrDefault("required", false);
+            Integer maxLength = campo.get("maxLength") instanceof Number n ? n.intValue() : null;
+
+            if (Boolean.TRUE.equals(required)) {
+                Object valor = dados.get(fieldId);
+                if (valor == null || valor.toString().isBlank()) {
+                    throw new BusinessException("Campo obrigatório não preenchido: " + campo.getOrDefault("label", fieldId));
+                }
+            }
+
+            if (maxLength != null && dados.containsKey(fieldId)) {
+                Object valor = dados.get(fieldId);
+                if (valor != null && valor.toString().length() > maxLength) {
+                    throw new BusinessException("Campo '" + campo.getOrDefault("label", fieldId) + "' excede o tamanho máximo de " + maxLength + " caracteres");
+                }
+            }
+        }
+    }
+
+    private void iniciarWorkflow(Projeto projeto, TipoEvento tipoEvento) {
+        List<Map<String, Object>> steps;
+        try {
+            steps = objectMapper.readValue(tipoEvento.getWorkflowConfig(), new TypeReference<>() {});
+        } catch (Exception e) {
+            log.warn("workflowConfig inválido no TipoEvento {}: {}", tipoEvento.getId(), e.getMessage());
+            return;
+        }
+        if (steps.isEmpty()) return;
+
+        for (Map<String, Object> step : steps) {
+            EtapaAprovacao etapa = new EtapaAprovacao();
+            etapa.setProjeto(projeto);
+            etapa.setOrdem(((Number) step.get("ordem")).intValue());
+            etapa.setNomeEtapa((String) step.getOrDefault("nomeEtapa", "Etapa " + step.get("ordem")));
+            etapa.setTipo((String) step.getOrDefault("tipo", "sequential"));
+            etapa.setPerfilResponsavel(PerfilUsuario.valueOf((String) step.get("perfilResponsavel")));
+            etapa.setStatus(StatusEtapaAprovacao.PENDENTE);
+            etapaAprovacaoRepository.save(etapa);
+        }
+
+        int primeiraOrdem = steps.stream().mapToInt(s -> ((Number) s.get("ordem")).intValue()).min().getAsInt();
+        projeto.setEtapaAtualOrdem(primeiraOrdem);
+        projetoRepository.save(projeto);
+
+        // Notify first step approvers
+        etapaAprovacaoRepository.findByProjetoIdAndOrdem(projeto.getId(), primeiraOrdem).ifPresent(etapa ->
+                etapaAprovacaoService.notificarAprovadoresDaEtapa(projeto, etapa)
         );
-
-        return toResponse(salvo);
     }
 
     @Transactional
@@ -373,6 +477,7 @@ public class ProjetoService {
         projeto.setDuracaoPitch(dto.getDuracaoPitch());
         projeto.setFormatoDemo(dto.getFormatoDemo());
         projeto.setObservacoes(dto.getObservacoes());
+        if (dto.getDadosFormulario() != null) projeto.setDadosFormulario(dto.getDadosFormulario());
     }
 
     private Material toMaterialEntity(MaterialDTO.Request dto, Projeto projeto) {
@@ -444,6 +549,13 @@ public class ProjetoService {
                         .toList())
                 .materiais(projeto.getMateriais().stream().map(this::toMaterialResponse).toList())
                 .itensPapelaria(projeto.getItensPapelaria().stream().map(this::toPapelariaResponse).toList())
+                .dadosFormulario(projeto.getDadosFormulario())
+                .schemaVersion(projeto.getSchemaVersion())
+                .etapaAtualOrdem(projeto.getEtapaAtualOrdem())
+                .etapas(projeto.getEtapas().stream()
+                        .sorted(java.util.Comparator.comparing(br.com.ctrlplaygoiania.feiratech.model.EtapaAprovacao::getOrdem))
+                        .map(etapaAprovacaoService::toResponse)
+                        .toList())
                 .dataSubmissao(projeto.getDataSubmissao())
                 .createdAt(projeto.getCreatedAt())
                 .updatedAt(projeto.getUpdatedAt())

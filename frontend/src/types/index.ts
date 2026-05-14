@@ -1,4 +1,5 @@
-export type PerfilUsuario = 'ADMINISTRADOR' | 'INSTRUTOR' | 'COORDENACAO' | 'MONITOR';
+export type PerfilUsuario = 'ADMINISTRADOR' | 'INSTRUTOR' | 'COORDENACAO' | 'MONITOR' | 'COMERCIAL';
+export type StatusEtapaAprovacao = 'PENDENTE' | 'APROVADO' | 'REPROVADO';
 export type TipoProjeto = 'HARDWARE' | 'SOFTWARE';
 export type TipoItemEstoque = 'HARDWARE' | 'SOFTWARE' | 'PERIFERICO' | 'PAPELARIA';
 
@@ -151,11 +152,64 @@ export interface PostForum {
   updatedAt: string;
 }
 
+export interface TipoEventoResumo {
+  id: string;
+  nome: string;
+  icone: string | null;
+  cor: string | null;
+  formSchema: string | null;
+  workflowConfig: string | null;
+  schemaVersion: number;
+  usaFormularioLegado: boolean;
+}
+
+export interface TipoEvento extends TipoEventoResumo {
+  descricao: string | null;
+  ativo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FormField {
+  id: string;
+  type: 'text' | 'textarea' | 'number' | 'select' | 'checkbox' | 'date';
+  label: string;
+  required?: boolean;
+  maxLength?: number;
+  options?: string[];
+  section?: string;
+  visibleIf?: Record<string, string>;
+}
+
+export interface WorkflowStep {
+  ordem: number;
+  nomeEtapa: string;
+  tipo: 'sequential' | 'parallel';
+  perfilResponsavel: PerfilUsuario;
+  notificarEmail?: boolean;
+  camposAnalise?: FormField[];
+}
+
+export interface EtapaAprovacao {
+  id: string;
+  ordem: number;
+  nomeEtapa: string;
+  tipo: string;
+  perfilResponsavel: PerfilUsuario;
+  status: StatusEtapaAprovacao;
+  motivo: string | null;
+  dadosAnalise: string | null;
+  respondidoPor: Usuario | null;
+  respondidoEm: string | null;
+  createdAt: string;
+}
+
 export interface EventoResumo {
   id: string;
   nome: string;
   dataEvento: string;
   submissaoAberta: boolean;
+  tipoEvento?: TipoEventoResumo | null;
 }
 
 export interface Projeto {
@@ -191,6 +245,10 @@ export interface Projeto {
   observacoes: string | null;
   materiais: Material[];
   itensPapelaria: PapelariaItem[];
+  dadosFormulario: string | null;
+  schemaVersion: number | null;
+  etapaAtualOrdem: number | null;
+  etapas: EtapaAprovacao[];
   dataSubmissao: string | null;
   createdAt: string;
   updatedAt: string;
@@ -243,4 +301,5 @@ export interface ProjetoRequest {
   duracaoPitch?: number;
   formatoDemo?: FormatoDemo;
   observacoes?: string;
+  dadosFormulario?: string;
 }

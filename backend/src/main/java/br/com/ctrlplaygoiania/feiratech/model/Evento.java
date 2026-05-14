@@ -30,6 +30,10 @@ public class Evento {
     @Column(columnDefinition = "TEXT")
     private String descricao;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo_evento_id")
+    private TipoEvento tipoEvento;
+
     @Column(length = 300)
     private String localEvento;
 

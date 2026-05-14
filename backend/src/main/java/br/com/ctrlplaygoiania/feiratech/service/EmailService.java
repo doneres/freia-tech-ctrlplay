@@ -62,6 +62,12 @@ public class EmailService {
         enviar(emailCoordenacao, assunto, templateSolicitacaoCompra(nomeProjeto, nomeItem));
     }
 
+    @Async
+    public void notificarEtapaAprovacaoPendente(String emailAprovador, String nomeProjeto, String nomeEtapa) {
+        String assunto = "Projeto aguardando sua análise: " + nomeProjeto;
+        enviar(emailAprovador, assunto, templateEtapaAprovacaoPendente(nomeProjeto, nomeEtapa));
+    }
+
     private void enviar(String para, String assunto, String corpo) {
         if (mailSender == null) {
             log.debug("JavaMailSender não configurado — email para {} ignorado", para);
@@ -194,6 +200,25 @@ public class EmailService {
               </div>
             </div></body></html>
             """.formatted(nomeUsuario, codigo);
+    }
+
+    private String templateEtapaAprovacaoPendente(String nomeProjeto, String nomeEtapa) {
+        return """
+            <html><body style="font-family:sans-serif;color:#1f2937;padding:24px">
+            <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;border:1px solid #e5e7eb;padding:32px">
+              <div style="border-bottom:3px solid #7c3aed;padding-bottom:16px;margin-bottom:24px">
+                <h1 style="color:#7c3aed;margin:0;font-size:22px">Ctrl+Play — Feira Tech</h1>
+              </div>
+              <div style="background:#eff6ff;border:1px solid #93c5fd;border-radius:6px;padding:16px;margin-bottom:24px">
+                <h2 style="color:#1e40af;margin:0 0 8px">Projeto aguardando sua análise</h2>
+                <p style="margin:0">O projeto <strong>"%s"</strong> chegou na etapa <strong>"%s"</strong> e aguarda sua avaliação.</p>
+              </div>
+              <p>Acesse o sistema para analisar e responder a esta etapa.</p>
+              <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#6b7280">
+                Ctrl+Play Goiânia — Sistema de Gestão da Feira Tecnológica
+              </div>
+            </div></body></html>
+            """.formatted(nomeProjeto, nomeEtapa);
     }
 
     private String templateCompraReprovada(String nomeProjeto, String nomeItem, String justificativa) {

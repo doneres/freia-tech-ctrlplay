@@ -178,6 +178,21 @@ public class Projeto {
     @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ArquivoProjeto> arquivos = new ArrayList<>();
 
+    // ── Formulário dinâmico ───────────────────────────────────────────────
+
+    // JSON map of field answers when submitted via a dynamic TipoEvento formSchema
+    @Column(columnDefinition = "TEXT")
+    private String dadosFormulario;
+
+    // Snapshot of TipoEvento.schemaVersion at submission time for future migrations
+    private Integer schemaVersion;
+
+    // Current workflow step (1-based). Null = no workflow or legacy flow.
+    private Integer etapaAtualOrdem;
+
+    @OneToMany(mappedBy = "projeto", cascade = CascadeType.ALL, orphanRemoval = true)
+    private java.util.List<EtapaAprovacao> etapas = new ArrayList<>();
+
     // ── Auditoria ─────────────────────────────────────────────────────────
 
     private LocalDateTime dataSubmissao;

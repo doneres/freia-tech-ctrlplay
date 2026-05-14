@@ -4,6 +4,7 @@ import {
   LayoutDashboard, FolderKanban, Users, LogOut, Package, Code2,
   FileSpreadsheet, X, CalendarDays, MessageSquare, ShoppingCart,
   Settings, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
+  Layers,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -62,6 +63,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     user?.perfil === "INSTRUTOR" || user?.perfil === "MONITOR";
   const canViewSolicitacoes =
     user?.perfil === "ADMINISTRADOR" || user?.perfil === "COORDENACAO";
+  const canManageTiposEvento =
+    user?.perfil === "ADMINISTRADOR" || user?.perfil === "COORDENACAO";
 
   function handleSignOut() {
     signOut();
@@ -80,6 +83,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   ];
 
   const administracaoItems: NavItem[] = [
+    ...(canManageTiposEvento ? [{ to: "/tipos-evento", icon: Layers, label: "Tipos de Evento" }] : []),
     ...(canManageFerramentas ? [{ to: "/ferramentas", icon: Code2, label: "Ferramentas" }] : []),
     ...(canViewRelatorios ? [{ to: "/relatorios", icon: FileSpreadsheet, label: "Relatórios" }] : []),
     ...(canManageUsers ? [{ to: "/usuarios", icon: Users, label: "Usuários" }] : []),

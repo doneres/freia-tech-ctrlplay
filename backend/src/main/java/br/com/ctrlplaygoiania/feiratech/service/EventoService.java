@@ -4,6 +4,7 @@ import br.com.ctrlplaygoiania.feiratech.dto.EventoDTO;
 import br.com.ctrlplaygoiania.feiratech.exception.ResourceNotFoundException;
 import br.com.ctrlplaygoiania.feiratech.model.Evento;
 import br.com.ctrlplaygoiania.feiratech.repository.EventoRepository;
+import br.com.ctrlplaygoiania.feiratech.repository.TipoEventoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,8 @@ import java.util.UUID;
 public class EventoService {
 
     private final EventoRepository eventoRepository;
+    private final TipoEventoRepository tipoEventoRepository;
+    private final TipoEventoService tipoEventoService;
 
     @Transactional(readOnly = true)
     public List<EventoDTO.Response> listarTodos() {
@@ -75,6 +78,7 @@ public class EventoService {
                 .dataFimSubmissao(e.getDataFimSubmissao())
                 .descricao(e.getDescricao())
                 .submissaoAberta(aberta)
+                .tipoEvento(tipoEventoService.toResumo(e.getTipoEvento()))
                 .localEvento(e.getLocalEvento())
                 .qtdMesas(e.getQtdMesas())
                 .qtdComputadores(e.getQtdComputadores())
@@ -93,6 +97,12 @@ public class EventoService {
         evento.setDataInicioSubmissao(dto.getDataInicioSubmissao());
         evento.setDataFimSubmissao(dto.getDataFimSubmissao());
         evento.setDescricao(dto.getDescricao());
+        if (dto.getTipoEventoId() != null) {
+            evento.setTipoEvento(tipoEventoRepository.findById(dto.getTipoEventoId())
+                    .orElseThrow(() -> new ResourceNotFoundException("TipoEvento", dto.getTipoEventoId())));
+        } else {
+            evento.setTipoEvento(null);
+        }
         evento.setLocalEvento(dto.getLocalEvento());
         evento.setQtdMesas(dto.getQtdMesas());
         evento.setQtdComputadores(dto.getQtdComputadores());

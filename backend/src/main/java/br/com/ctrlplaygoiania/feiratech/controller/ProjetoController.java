@@ -1,11 +1,13 @@
 package br.com.ctrlplaygoiania.feiratech.controller;
 
 import br.com.ctrlplaygoiania.feiratech.dto.ApiResponse;
+import br.com.ctrlplaygoiania.feiratech.dto.EtapaAprovacaoDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.ProjetoDTO;
 import br.com.ctrlplaygoiania.feiratech.model.enums.NivelTurma;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusProjeto;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusSemana;
 import br.com.ctrlplaygoiania.feiratech.model.enums.Turno;
+import br.com.ctrlplaygoiania.feiratech.service.EtapaAprovacaoService;
 import br.com.ctrlplaygoiania.feiratech.service.ProjetoService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
@@ -27,6 +29,7 @@ import java.util.UUID;
 public class ProjetoController {
 
     private final ProjetoService projetoService;
+    private final EtapaAprovacaoService etapaAprovacaoService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ProjetoDTO.Response>>> listarTodos(
@@ -107,6 +110,21 @@ public class ProjetoController {
             @AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(ApiResponse.ok(
                 projetoService.vincularEvento(id, request.getEventoId(), principal.getUsername())));
+    }
+
+    @GetMapping("/{id}/etapas")
+    public ResponseEntity<ApiResponse<java.util.List<EtapaAprovacaoDTO.Response>>> listarEtapas(
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(etapaAprovacaoService.listarPorProjeto(id)));
+    }
+
+    @PatchMapping("/{id}/etapas/responder")
+    public ResponseEntity<ApiResponse<Void>> responderEtapa(
+            @PathVariable UUID id,
+            @RequestBody @Valid EtapaAprovacaoDTO.RespostaRequest dto,
+            @AuthenticationPrincipal UserDetails principal) {
+        etapaAprovacaoService.responderEtapa(id, dto, principal.getUsername());
+        return ResponseEntity.ok(ApiResponse.ok("Etapa respondida com sucesso", null));
     }
 
     // ── Request bodies dos endpoints PATCH ───────────────────────────────────

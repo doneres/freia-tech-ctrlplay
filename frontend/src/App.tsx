@@ -16,6 +16,7 @@ import AgendaPage from './pages/AgendaPage';
 import EventoPage from './pages/EventoPage';
 import ForumPage from './pages/ForumPage';
 import ConfiguracoesPage from './pages/ConfiguracoesPage';
+import TiposEventoPage from './pages/TiposEventoPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,7 @@ export default function App() {
               <Route path="evento" element={<EventoPage />} />
               <Route path="forum" element={<ForumPage />} />
               <Route path="configuracoes" element={<ConfiguracoesPage />} />
+              <Route path="tipos-evento" element={<TiposEventoPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

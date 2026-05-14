@@ -20,6 +20,7 @@ public class EventoDTO {
         private LocalDateTime dataInicioSubmissao;
         private LocalDateTime dataFimSubmissao;
         private String descricao;
+        private UUID tipoEventoId;
         private String localEvento;
         private Integer qtdMesas;
         private Integer qtdComputadores;
@@ -38,6 +39,7 @@ public class EventoDTO {
         private LocalDateTime dataFimSubmissao;
         private String descricao;
         private boolean submissaoAberta;
+        private TipoEventoDTO.Resumo tipoEvento;
         private String localEvento;
         private Integer qtdMesas;
         private Integer qtdComputadores;

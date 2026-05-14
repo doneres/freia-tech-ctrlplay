@@ -279,6 +279,7 @@ export default function NovoProjetoPage() {
   const [equipamentosSelecionados, setEquipamentosSelecionados] = useState<EquipamentoSelecionado[]>([]);
   const [estoqueSearch, setEstoqueSearch] = useState('');
   const [estoqueTipoFiltro, setEstoqueTipoFiltro] = useState<TipoItemEstoque | ''>('');
+  const [dadosFormulario, setDadosFormulario] = useState<Record<string, string>>({});
 
   const { data: projetoExistente, isLoading: loadingProjeto } = useQuery<Projeto>({
     queryKey: ['projeto', projetoId],
@@ -321,6 +322,17 @@ export default function NovoProjetoPage() {
     enabled: !isEditing,
   });
 
+  // Derive the selected evento and its dynamic form schema
+  const selectedEvento = eventosModal.find(e => e.id === form.eventoId) ?? null;
+  const tipoEvento = selectedEvento?.tipoEvento ?? null;
+  const hasDynamicForm = !!(tipoEvento && !tipoEvento.usaFormularioLegado && tipoEvento.formSchema);
+  const dynamicFields: import('../types').FormField[] = (() => {
+    if (!hasDynamicForm || !tipoEvento?.formSchema) return [];
+    try { return JSON.parse(tipoEvento.formSchema); } catch { return []; }
+  })();
+  const dynamicOffset = hasDynamicForm ? 1 : 0;
+  const effectiveSteps = hasDynamicForm ? ['Formulário', ...STEPS] : STEPS;
+
   const { data: instrutores = [] } = useQuery({
     queryKey: ['instrutores'],
     queryFn: listarInstrutores,
@@ -330,7 +342,7 @@ export default function NovoProjetoPage() {
   const { data: ferramentasCatalogo = [] } = useQuery({
     queryKey: ['ferramentas', true],
     queryFn: () => listarFerramentas(true),
-    enabled: step === 2,
+    enabled: step === 2 + dynamicOffset,
   });
 
   const tiposEstoque: TipoItemEstoque[] =
@@ -339,7 +351,7 @@ export default function NovoProjetoPage() {
   const { data: itensEstoque = [] } = useQuery({
     queryKey: ['estoque', { tipos: tiposEstoque, search: estoqueSearch }],
     queryFn: () => listarEstoque({ search: estoqueSearch || undefined, apenasAtivos: true }),
-    enabled: step === 2 && form.tipoProjeto != null,
+    enabled: step === 2 + dynamicOffset && form.tipoProjeto != null,
     select: (data) => data.filter(i =>
       tiposEstoque.includes(i.tipo) &&
       (estoqueTipoFiltro === '' || i.tipo === estoqueTipoFiltro)
@@ -424,7 +436,15 @@ export default function NovoProjetoPage() {
 
   function goNext() {
     setStepError('');
-    if (step === 0) {
+    if (step === 0 && hasDynamicForm) {
+      // Validate required dynamic form fields
+      for (const campo of dynamicFields) {
+        if (campo.required && !dadosFormulario[campo.id]?.trim()) {
+          return setStepError(`Campo obrigatório: ${campo.label}`);
+        }
+      }
+    }
+    if (step === 0 + dynamicOffset) {
       if (!form.nomeProjeto?.trim()) return setStepError('Nome do projeto é obrigatório.');
       if (user?.perfil !== 'INSTRUTOR' && !form.instrutorId) return setStepError('Selecione um instrutor.');
       if (!form.codigoTurma?.trim()) return setStepError('Código da turma é obrigatório.');
@@ -432,13 +452,13 @@ export default function NovoProjetoPage() {
       if (!form.nivelTurma) return setStepError('Nível da turma é obrigatório.');
       if (!form.qtdAlunos || form.qtdAlunos < 1) return setStepError('Quantidade de alunos é obrigatória.');
     }
-    if (step === 1) {
+    if (step === 1 + dynamicOffset) {
       if (selectedOds.length === 0) return setStepError('Selecione pelo menos uma ODS.');
       if (!form.problemaIdentificado?.trim()) return setStepError('Problema identificado é obrigatório.');
       if (!form.solucaoProposta?.trim()) return setStepError('Solução proposta é obrigatória.');
       if (!form.objetivoProjeto?.trim()) return setStepError('Objetivo do projeto é obrigatório.');
     }
-    if (step === 2) {
+    if (step === 2 + dynamicOffset) {
       if (!form.tipoProjeto) return setStepError('Selecione o tipo do projeto.');
       if (form.tipoProjeto === 'SOFTWARE' && (form.ferramentasSoftwareIds ?? []).length === 0) {
         return setStepError('Selecione pelo menos uma ferramenta de software.');
@@ -457,7 +477,11 @@ export default function NovoProjetoPage() {
 
   function submit() {
     setStepError('');
-    mutation.mutate(form as ProjetoRequest);
+    const payload: ProjetoRequest = { ...form as ProjetoRequest };
+    if (hasDynamicForm && Object.keys(dadosFormulario).length > 0) {
+      payload.dadosFormulario = JSON.stringify(dadosFormulario);
+    }
+    mutation.mutate(payload);
   }
 
   const inp = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white';
@@ -613,7 +637,7 @@ export default function NovoProjetoPage() {
         </Link>
 
         <div className="flex items-center">
-          {STEPS.map((label, i) => (
+          {effectiveSteps.map((label, i) => (
             <div key={i} className="flex items-center">
               <button
                 type="button"
@@ -640,7 +664,7 @@ export default function NovoProjetoPage() {
                   {label}
                 </span>
               </button>
-              {i < STEPS.length - 1 && (
+              {i < effectiveSteps.length - 1 && (
                 <div className={`w-8 h-px mx-3 flex-shrink-0 ${i < step ? 'bg-brand-200' : 'bg-gray-200'}`} />
               )}
             </div>
@@ -651,17 +675,20 @@ export default function NovoProjetoPage() {
       {/* ── Título da etapa ──────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-4 sm:px-8 pt-4 pb-1">
         <h1 className="text-base font-bold text-gray-900">
-          {isEditing
-            ? ['Identificação do projeto', 'Proposta e objetivos', 'Ferramentas e tecnologia', 'Revisão e confirmação'][step]
-            : ['Identificação do projeto', 'Proposta e objetivos', 'Ferramentas e tecnologia', 'Revisão e envio'][step]}
+          {(() => {
+            const titles = hasDynamicForm
+              ? [`Formulário — ${tipoEvento?.nome ?? 'Evento'}`, 'Identificação do projeto', 'Proposta e objetivos', 'Ferramentas e tecnologia', isEditing ? 'Revisão e confirmação' : 'Revisão e envio']
+              : ['Identificação do projeto', 'Proposta e objetivos', 'Ferramentas e tecnologia', isEditing ? 'Revisão e confirmação' : 'Revisão e envio'];
+            return titles[step] ?? titles[titles.length - 1];
+          })()}
         </h1>
         <p className="text-xs text-gray-400 mt-0.5">
-          {[
-            'Informações básicas do projeto e da turma',
-            'Descreva o problema, a solução e os objetivos',
-            'Defina o tipo do projeto e as ferramentas utilizadas',
-            'Confira os dados antes de criar o projeto',
-          ][step]}
+          {(() => {
+            const descs = hasDynamicForm
+              ? ['Preencha o formulário do tipo de evento', 'Informações básicas do projeto e da turma', 'Descreva o problema, a solução e os objetivos', 'Defina o tipo do projeto e as ferramentas utilizadas', 'Confira os dados antes de criar o projeto']
+              : ['Informações básicas do projeto e da turma', 'Descreva o problema, a solução e os objetivos', 'Defina o tipo do projeto e as ferramentas utilizadas', 'Confira os dados antes de criar o projeto'];
+            return descs[step] ?? descs[descs.length - 1];
+          })()}
         </p>
       </div>
 
@@ -673,8 +700,68 @@ export default function NovoProjetoPage() {
           </div>
         )}
 
-        {/* ── Etapa 0: Identificação ─────────────────────────────────────────── */}
-        {step === 0 && (
+        {/* ── Etapa 0 (dinâmica): Formulário do tipo de evento ──────────────── */}
+        {step === 0 && hasDynamicForm && (
+          <div className="space-y-4">
+            {dynamicFields.map(campo => {
+              const groupedBySection = campo.section;
+              return (
+                <div key={campo.id}>
+                  {groupedBySection && (
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1 mt-3">{groupedBySection}</p>
+                  )}
+                  <label className={lbl}>
+                    {campo.label} {campo.required && <span className="text-red-500">*</span>}
+                  </label>
+                  {campo.type === 'textarea' ? (
+                    <textarea
+                      rows={3}
+                      value={dadosFormulario[campo.id] ?? ''}
+                      onChange={e => setDadosFormulario(d => ({ ...d, [campo.id]: e.target.value }))}
+                      maxLength={campo.maxLength}
+                      className={`${inp} resize-none`}
+                    />
+                  ) : campo.type === 'select' ? (
+                    <select
+                      value={dadosFormulario[campo.id] ?? ''}
+                      onChange={e => setDadosFormulario(d => ({ ...d, [campo.id]: e.target.value }))}
+                      className={inp}
+                    >
+                      <option value="">— Selecione —</option>
+                      {campo.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  ) : campo.type === 'checkbox' ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={dadosFormulario[campo.id] === 'true'}
+                        onChange={e => setDadosFormulario(d => ({ ...d, [campo.id]: String(e.target.checked) }))}
+                        className="w-4 h-4 accent-brand-600"
+                      />
+                      <span className="text-sm text-gray-600">{campo.label}</span>
+                    </div>
+                  ) : (
+                    <input
+                      type={campo.type}
+                      value={dadosFormulario[campo.id] ?? ''}
+                      onChange={e => setDadosFormulario(d => ({ ...d, [campo.id]: e.target.value }))}
+                      maxLength={campo.maxLength}
+                      className={inp}
+                    />
+                  )}
+                  {campo.maxLength && (
+                    <p className="text-xs text-gray-400 mt-0.5 text-right">
+                      {(dadosFormulario[campo.id] ?? '').length}/{campo.maxLength}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Etapa Identificação ────────────────────────────────────────────── */}
+        {step === dynamicOffset && (
           <div className="space-y-3">
             <div>
               <label className={lbl}>Nome do projeto *</label>
@@ -796,7 +883,7 @@ export default function NovoProjetoPage() {
         )}
 
         {/* ── Etapa 1: Proposta ──────────────────────────────────────────────── */}
-        {step === 1 && (
+        {step === 1 + dynamicOffset && (
           <div className="space-y-4">
             <div>
               <label className={`${lbl} mb-2`}>
@@ -870,7 +957,7 @@ export default function NovoProjetoPage() {
         )}
 
         {/* ── Etapa 2: Ferramentas ───────────────────────────────────────────── */}
-        {step === 2 && (
+        {step === 2 + dynamicOffset && (
           <div className="space-y-4">
             {/* Tipo do projeto */}
             <div>
@@ -948,12 +1035,12 @@ export default function NovoProjetoPage() {
         )}
 
         {/* ── Etapa 3: Revisão ───────────────────────────────────────────────── */}
-        {step === 3 && (
+        {step === 3 + dynamicOffset && (
           <div className="space-y-3">
             <div className="bg-gray-50 rounded-xl p-4">
               <div className="flex items-center justify-between mb-2.5">
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Identificação</span>
-                <button type="button" onClick={() => { setStepError(''); setStep(0); }} className="text-xs text-brand-600 hover:underline">Editar</button>
+                <button type="button" onClick={() => { setStepError(''); setStep(dynamicOffset); }} className="text-xs text-brand-600 hover:underline">Editar</button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1">
                 <ReviewItem label="Projeto" value={form.nomeProjeto} />
@@ -976,7 +1063,7 @@ export default function NovoProjetoPage() {
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Proposta</span>
-                  <button type="button" onClick={() => { setStepError(''); setStep(1); }} className="text-xs text-brand-600 hover:underline">Editar</button>
+                  <button type="button" onClick={() => { setStepError(''); setStep(1 + dynamicOffset); }} className="text-xs text-brand-600 hover:underline">Editar</button>
                 </div>
                 {selectedOds.length > 0 && (
                   <div className="flex flex-wrap gap-1 mb-2">
@@ -997,7 +1084,7 @@ export default function NovoProjetoPage() {
               <div className="bg-gray-50 rounded-xl p-4">
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Ferramentas</span>
-                  <button type="button" onClick={() => { setStepError(''); setStep(2); }} className="text-xs text-brand-600 hover:underline">Editar</button>
+                  <button type="button" onClick={() => { setStepError(''); setStep(2 + dynamicOffset); }} className="text-xs text-brand-600 hover:underline">Editar</button>
                 </div>
                 <ReviewItem label="Tipo" value={form.tipoProjeto === 'HARDWARE' ? 'Hardware' : 'Software'} />
                 {form.tipoProjeto === 'SOFTWARE' && (form.ferramentasSoftwareIds ?? []).length > 0 && (
@@ -1048,9 +1135,9 @@ export default function NovoProjetoPage() {
             </button>
           )}
 
-          <span className="text-xs text-gray-400">{step + 1} / {STEPS.length}</span>
+          <span className="text-xs text-gray-400">{step + 1} / {effectiveSteps.length}</span>
 
-          {step < STEPS.length - 1 ? (
+          {step < effectiveSteps.length - 1 ? (
             <button
               type="button"
               onClick={goNext}

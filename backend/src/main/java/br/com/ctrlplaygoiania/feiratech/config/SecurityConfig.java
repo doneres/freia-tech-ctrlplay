@@ -103,6 +103,14 @@ public class SecurityConfig {
                             .hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_INSTRUTOR")
                         .requestMatchers(HttpMethod.GET, "/api/relatorios/minhas-solicitacoes")
                             .hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_INSTRUTOR")
+                        // Projetos: workflow — COMERCIAL pode responder etapas da sua competência
+                        .requestMatchers(HttpMethod.PATCH, "/api/projetos/*/etapas/responder")
+                            .hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO", "ROLE_COMERCIAL")
+                        // Tipos de evento: todos autenticados podem ler, ADMIN/COORD podem escrever
+                        .requestMatchers(HttpMethod.GET, "/api/tipos-evento/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/tipos-evento/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
+                        .requestMatchers(HttpMethod.PUT, "/api/tipos-evento/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
+                        .requestMatchers(HttpMethod.DELETE, "/api/tipos-evento/**").hasAuthority("ROLE_ADMINISTRADOR")
                         // Eventos: todos autenticados podem ler, ADMINISTRADOR e COORDENACAO podem escrever
                         .requestMatchers(HttpMethod.GET, "/api/eventos/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/eventos/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")

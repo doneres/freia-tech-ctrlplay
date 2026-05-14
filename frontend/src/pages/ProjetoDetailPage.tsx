@@ -12,6 +12,7 @@ import {
   deletarProjeto, atualizarStatusSemana, iniciarAndamento, concluirProjeto,
   vincularEvento,
 } from '../api/projetos';
+import { responderEtapa } from '../api/projetos-etapas';
 import { listarEventos, listarEventosComSubmissaoAberta, type Evento } from '../api/eventos';
 import {
   criarMaterial, criarDoEstoque, atualizarStatusCompra, deletarMaterial,
@@ -24,7 +25,7 @@ import {
 import { listarEstoque } from '../api/estoque';
 import { listarAcompanhamento, criarRegistro, deletarRegistro, type AcompanhamentoRequest } from '../api/acompanhamento';
 import { listarArquivos, criarArquivo, deletarArquivo, type ArquivoRequest } from '../api/arquivos';
-import type { Projeto, StatusSemana, StatusCompra, Material, ItemEstoque, TipoItemEstoque, PapelariaItem, RegistroAcompanhamento, ArquivoProjeto, FaseDesignThinking, TipoArquivo } from '../types';
+import type { Projeto, StatusSemana, StatusCompra, Material, ItemEstoque, TipoItemEstoque, PapelariaItem, RegistroAcompanhamento, ArquivoProjeto, FaseDesignThinking, TipoArquivo, EtapaAprovacao, StatusEtapaAprovacao, WorkflowStep, FormField } from '../types';
 import StatusBadge from '../components/ui/StatusBadge';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -61,7 +62,11 @@ export default function ProjetoDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>('geral');
   const [showReprovacaoModal, setShowReprovacaoModal] = useState(false);
   const [showVincularModal, setShowVincularModal] = useState(false);
+  const [showWorkflowModal, setShowWorkflowModal] = useState(false);
   const [justificativaReprovacao, setJustificativaReprovacao] = useState('');
+  const [workflowResposta, setWorkflowResposta] = useState<{ status: StatusEtapaAprovacao; motivo: string; dadosAnalise: Record<string, string> }>({
+    status: 'APROVADO', motivo: '', dadosAnalise: {},
+  });
   const [materialModalMode, setMaterialModalMode] = useState<MaterialMode | null>(null);
   const [papelariaModalMode, setPapelariaModalMode] = useState<PapelariaMode | null>(null);
   const [statusCompraError, setStatusCompraError] = useState<string | null>(null);
@@ -90,6 +95,16 @@ export default function ProjetoDetailPage() {
   const mutVincularEvento = useMutation({
     mutationFn: (eventoId: string) => vincularEvento(id!, eventoId),
     onSuccess: () => { invalidate(); setShowVincularModal(false); },
+  });
+  const mutResponderEtapa = useMutation({
+    mutationFn: () => responderEtapa(id!, {
+      status: workflowResposta.status,
+      motivo: workflowResposta.motivo || undefined,
+      dadosAnalise: Object.keys(workflowResposta.dadosAnalise).length > 0
+        ? JSON.stringify(workflowResposta.dadosAnalise)
+        : undefined,
+    }),
+    onSuccess: () => { invalidate(); setShowWorkflowModal(false); },
   });
   const mutStatusSemana = useMutation({
     mutationFn: ({ semana, status }: { semana: string; status: StatusSemana }) => atualizarStatusSemana(id!, semana, status),
@@ -136,7 +151,7 @@ export default function ProjetoDetailPage() {
     onSuccess: invalidate,
   });
 
-  const canApprove = user?.perfil === 'COORDENACAO' || user?.perfil === 'ADMINISTRADOR';
+  const canApprove = user?.perfil === 'COORDENACAO' || user?.perfil === 'ADMINISTRADOR' || user?.perfil === 'COMERCIAL';
   const canManage = user?.perfil === 'INSTRUTOR' || user?.perfil === 'ADMINISTRADOR';
   const isInstrutor = user?.perfil === 'INSTRUTOR';
   const canVincularEvento =
@@ -204,16 +219,33 @@ export default function ProjetoDetailPage() {
               </button>
             )}
             {canApprove && projeto.statusProjeto === 'SUBMETIDO' && (
-              <>
-                <button onClick={() => mutAprovar.mutate()} disabled={mutAprovar.isPending}
-                  className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-sm font-medium px-3 py-2 rounded-lg">
-                  <CheckCircle size={14} /> Aprovar
-                </button>
-                <button onClick={() => setShowReprovacaoModal(true)}
-                  className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-3 py-2 rounded-lg">
-                  <XCircle size={14} /> Reprovar
-                </button>
-              </>
+              projeto.etapas && projeto.etapas.length > 0 ? (
+                // Workflow mode: respond to current etapa
+                (() => {
+                  const etapaAtual = projeto.etapas.find(e => e.ordem === projeto.etapaAtualOrdem);
+                  const podeResponder = etapaAtual?.status === 'PENDENTE' && (
+                    user?.perfil === 'ADMINISTRADOR' || user?.perfil === etapaAtual?.perfilResponsavel
+                  );
+                  return podeResponder ? (
+                    <button onClick={() => setShowWorkflowModal(true)}
+                      className="flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium px-3 py-2 rounded-lg">
+                      <CheckCircle size={14} /> Responder Etapa
+                    </button>
+                  ) : null;
+                })()
+              ) : (
+                // Legacy mode: direct approve/reject
+                <>
+                  <button onClick={() => mutAprovar.mutate()} disabled={mutAprovar.isPending}
+                    className="flex items-center gap-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white text-sm font-medium px-3 py-2 rounded-lg">
+                    <CheckCircle size={14} /> Aprovar
+                  </button>
+                  <button onClick={() => setShowReprovacaoModal(true)}
+                    className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-3 py-2 rounded-lg">
+                    <XCircle size={14} /> Reprovar
+                  </button>
+                </>
+              )
             )}
             {canApprove && projeto.statusProjeto === 'APROVADO' && (
               <button onClick={() => { if (confirm('Iniciar andamento do projeto?')) mutIniciarAndamento.mutate(); }}
@@ -276,6 +308,43 @@ export default function ProjetoDetailPage() {
             <CalendarDays size={15} />
             Vincular a um evento
           </button>
+        </div>
+      )}
+
+      {/* Workflow timeline */}
+      {projeto.etapas && projeto.etapas.length > 0 && (
+        <div className="mb-4 bg-white border border-gray-200 rounded-xl p-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Fluxo de aprovação</p>
+          <div className="flex items-start gap-2 flex-wrap">
+            {projeto.etapas.map((etapa, idx) => {
+              const isAtual = etapa.ordem === projeto.etapaAtualOrdem;
+              const statusColor = etapa.status === 'APROVADO'
+                ? 'bg-green-100 text-green-700 border-green-200'
+                : etapa.status === 'REPROVADO'
+                ? 'bg-red-100 text-red-700 border-red-200'
+                : isAtual
+                ? 'bg-brand-100 text-brand-700 border-brand-200'
+                : 'bg-gray-100 text-gray-500 border-gray-200';
+
+              return (
+                <div key={etapa.id} className="flex items-center gap-2">
+                  {idx > 0 && <div className="h-px w-4 bg-gray-200" />}
+                  <div className={`border rounded-lg px-3 py-2 text-xs ${statusColor}`}>
+                    <p className="font-semibold">{etapa.nomeEtapa}</p>
+                    <p className="text-xs opacity-70">{etapa.perfilResponsavel}</p>
+                    {etapa.status !== 'PENDENTE' && (
+                      <p className="text-xs mt-0.5">
+                        {etapa.status} {etapa.respondidoPor ? `por ${etapa.respondidoPor.nome}` : ''}
+                      </p>
+                    )}
+                    {etapa.motivo && (
+                      <p className="text-xs italic mt-0.5 opacity-80">"{etapa.motivo}"</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -362,6 +431,96 @@ export default function ProjetoDetailPage() {
           </div>
         </Modal>
       )}
+
+      {/* Workflow: responder etapa */}
+      {showWorkflowModal && (() => {
+        const etapaAtual = projeto.etapas?.find(e => e.ordem === projeto.etapaAtualOrdem);
+        const workflowConfig = projeto.evento?.tipoEvento?.workflowConfig;
+        let stepConfig: WorkflowStep | undefined;
+        try { stepConfig = workflowConfig ? JSON.parse(workflowConfig).find((s: WorkflowStep) => s.ordem === projeto.etapaAtualOrdem) : undefined; } catch {}
+        const camposAnalise: FormField[] = stepConfig?.camposAnalise ?? [];
+
+        return (
+          <Modal title={`Responder: ${etapaAtual?.nomeEtapa ?? 'Etapa atual'}`} onClose={() => setShowWorkflowModal(false)}>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Decisão</label>
+                <div className="flex gap-2">
+                  {(['APROVADO', 'REPROVADO'] as StatusEtapaAprovacao[]).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setWorkflowResposta(r => ({ ...r, status: s }))}
+                      className={`flex-1 py-2 text-sm rounded-lg border font-medium transition-colors ${
+                        workflowResposta.status === s
+                          ? s === 'APROVADO' ? 'bg-green-600 text-white border-green-600' : 'bg-red-600 text-white border-red-600'
+                          : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      {s === 'APROVADO' ? 'Aprovar' : 'Reprovar'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {camposAnalise.map(campo => (
+                <div key={campo.id}>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    {campo.label} {campo.required && <span className="text-red-500">*</span>}
+                  </label>
+                  {campo.type === 'textarea' ? (
+                    <textarea
+                      rows={3}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+                      value={workflowResposta.dadosAnalise[campo.id] ?? ''}
+                      onChange={e => setWorkflowResposta(r => ({ ...r, dadosAnalise: { ...r.dadosAnalise, [campo.id]: e.target.value } }))}
+                    />
+                  ) : campo.type === 'select' ? (
+                    <select
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      value={workflowResposta.dadosAnalise[campo.id] ?? ''}
+                      onChange={e => setWorkflowResposta(r => ({ ...r, dadosAnalise: { ...r.dadosAnalise, [campo.id]: e.target.value } }))}
+                    >
+                      <option value="">— Selecione —</option>
+                      {campo.options?.map(o => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  ) : (
+                    <input
+                      type={campo.type}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                      value={workflowResposta.dadosAnalise[campo.id] ?? ''}
+                      onChange={e => setWorkflowResposta(r => ({ ...r, dadosAnalise: { ...r.dadosAnalise, [campo.id]: e.target.value } }))}
+                    />
+                  )}
+                </div>
+              ))}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Motivo / observação {workflowResposta.status === 'REPROVADO' && <span className="text-red-500">*</span>}
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Comentário opcional..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+                  value={workflowResposta.motivo}
+                  onChange={e => setWorkflowResposta(r => ({ ...r, motivo: e.target.value }))}
+                />
+              </div>
+              <div className="flex gap-3">
+                <button onClick={() => setShowWorkflowModal(false)}
+                  className="flex-1 border border-gray-300 text-gray-700 text-sm font-medium py-2 rounded-lg hover:bg-gray-50">
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => mutResponderEtapa.mutate()}
+                  disabled={mutResponderEtapa.isPending || (workflowResposta.status === 'REPROVADO' && !workflowResposta.motivo.trim())}
+                  className="flex-1 bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white text-sm font-medium py-2 rounded-lg"
+                >
+                  {mutResponderEtapa.isPending ? 'Enviando...' : 'Confirmar'}
+                </button>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
 
       {/* Papelaria: selecionar do estoque */}
       {papelariaModalMode === 'estoque' && (

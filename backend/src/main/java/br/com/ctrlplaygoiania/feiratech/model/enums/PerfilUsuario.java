@@ -4,5 +4,6 @@ public enum PerfilUsuario {
     ADMINISTRADOR,
     INSTRUTOR,
     COORDENACAO,
-    MONITOR
+    MONITOR,
+    COMERCIAL
 }

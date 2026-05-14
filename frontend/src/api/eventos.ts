@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse } from '../types';
+import type { ApiResponse, TipoEventoResumo } from '../types';
 
 export interface Evento {
   id: string;
@@ -9,6 +9,7 @@ export interface Evento {
   dataFimSubmissao: string | null;
   descricao: string | null;
   submissaoAberta: boolean;
+  tipoEvento: TipoEventoResumo | null;
   localEvento: string | null;
   qtdMesas: number | null;
   qtdComputadores: number | null;
@@ -26,6 +27,7 @@ export interface EventoRequest {
   dataInicioSubmissao?: string | null;
   dataFimSubmissao?: string | null;
   descricao?: string;
+  tipoEventoId?: string | null;
   localEvento?: string | null;
   qtdMesas?: number | null;
   qtdComputadores?: number | null;
