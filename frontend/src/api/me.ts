@@ -5,7 +5,7 @@ export interface MeRequest {
   nome: string;
   email: string;
   telefone?: string;
-  fotoPerfil?: string;
+  fotoPerfil?: string | null;
 }
 
 export interface AlterarSenhaRequest {

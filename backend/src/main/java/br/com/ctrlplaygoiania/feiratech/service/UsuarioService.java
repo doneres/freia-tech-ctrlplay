@@ -11,15 +11,17 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class UsuarioService {
+
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UsuarioRepository usuarioRepository;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -85,9 +87,7 @@ public class UsuarioService {
         usuario.setNome(dto.getNome());
         usuario.setEmail(dto.getEmail());
         usuario.setTelefone(dto.getTelefone());
-        if (dto.getFotoPerfil() != null) {
-            usuario.setFotoPerfil(dto.getFotoPerfil());
-        }
+        usuario.setFotoPerfil(dto.getFotoPerfil());
         return toResponse(usuarioRepository.save(usuario));
     }
 
@@ -128,7 +128,7 @@ public class UsuarioService {
         Optional<Usuario> opt = usuarioRepository.findByEmail(email);
         if (opt.isEmpty()) return;
         Usuario usuario = opt.get();
-        String codigo = String.format("%06d", new Random().nextInt(1_000_000));
+        String codigo = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
         usuario.setResetCode(codigo);
         usuario.setResetCodeExpiry(LocalDateTime.now().plusMinutes(15));
         usuarioRepository.save(usuario);

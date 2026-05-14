@@ -221,6 +221,7 @@ export interface ApiResponse<T> {
 export interface ProjetoRequest {
   nomeProjeto: string;
   instrutorId: string;
+  eventoId?: string;
   codigoTurma?: string;
   turno?: Turno;
   nivelTurma?: NivelTurma;

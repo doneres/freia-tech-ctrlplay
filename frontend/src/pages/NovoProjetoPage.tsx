@@ -3,10 +3,12 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, Check, Loader2, Plus, X, ChevronRight, ChevronLeft, CheckCircle2,
-  Cpu, Code2, Search, Gamepad2,
+  Cpu, Code2, Search, Gamepad2, CalendarDays, MapPin,
 } from 'lucide-react';
 import { criarProjeto, atualizarProjeto, buscarProjeto } from '../api/projetos';
 import { listarInstrutores } from '../api/usuarios';
+import { listarEventos, listarEventosComSubmissaoAberta } from '../api/eventos';
+import type { Evento } from '../api/eventos';
 import type { Projeto } from '../types';
 import { listarFerramentas } from '../api/ferramentas';
 import { listarEstoque } from '../api/estoque';
@@ -255,6 +257,13 @@ export default function NovoProjetoPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const isInstrutor = user?.perfil === 'INSTRUTOR';
+  const isAdminOrCoord = user?.perfil === 'ADMINISTRADOR' || user?.perfil === 'COORDENACAO';
+
+  // Event selection before wizard (only for new projects)
+  const [eventoSelecionado, setEventoSelecionado] = useState(isEditing);
+  const [selectedEventoModalId, setSelectedEventoModalId] = useState('');
+
   const [initialized, setInitialized] = useState(!isEditing);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<Partial<ProjetoRequest>>({
@@ -306,6 +315,12 @@ export default function NovoProjetoPage() {
     }
   }, [projetoExistente, initialized]);
 
+  const { data: eventosModal = [], isLoading: loadingEventosModal } = useQuery<Evento[]>({
+    queryKey: ['eventos-novo-projeto', isInstrutor],
+    queryFn: () => isInstrutor ? listarEventosComSubmissaoAberta() : listarEventos(),
+    enabled: !isEditing,
+  });
+
   const { data: instrutores = [] } = useQuery({
     queryKey: ['instrutores'],
     queryFn: listarInstrutores,
@@ -349,6 +364,13 @@ export default function NovoProjetoPage() {
       }
     }
   }, [mutation.isSuccess, mutation.data, navigate, isEditing, projetoId]);
+
+  function handleConfirmarEvento() {
+    if (selectedEventoModalId) {
+      f('eventoId', selectedEventoModalId);
+    }
+    setEventoSelecionado(true);
+  }
 
   function f<K extends keyof ProjetoRequest>(key: K, value: ProjetoRequest[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -447,6 +469,126 @@ export default function NovoProjetoPage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden relative bg-white">
+
+      {/* ── Event selection overlay (new projects only) ──────────────────────── */}
+      {!isEditing && !eventoSelecionado && (
+        <div className="absolute inset-0 z-40 bg-white flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex-shrink-0 px-4 sm:px-8 pt-5 pb-4 border-b border-gray-100">
+            <Link to="/projetos" className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 mb-4">
+              <ArrowLeft size={13} /> Voltar para projetos
+            </Link>
+            <div className="flex items-center gap-2 mb-1">
+              <CalendarDays size={18} className="text-brand-600 shrink-0" />
+              <h1 className="text-base font-bold text-gray-900">Vincular a um evento</h1>
+            </div>
+            <p className="text-xs text-gray-400">
+              {isInstrutor
+                ? 'Selecione o evento ao qual este projeto será submetido'
+                : 'Selecione o evento ou continue sem vincular por agora'}
+            </p>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-4 min-h-0">
+            {loadingEventosModal ? (
+              <div className="flex items-center justify-center h-32">
+                <Loader2 size={24} className="animate-spin text-brand-400" />
+              </div>
+            ) : eventosModal.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
+                  <CalendarDays size={24} className="text-gray-400" />
+                </div>
+                <p className="text-sm font-medium text-gray-700">Nenhum evento disponível</p>
+                <p className="text-xs text-gray-400 mt-1 max-w-xs mx-auto">
+                  {isInstrutor
+                    ? 'Não há eventos com submissão aberta no momento. Aguarde o período de submissão ou entre em contato com a coordenação.'
+                    : 'Nenhum evento cadastrado ainda. Crie um evento primeiro ou continue sem vincular.'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {eventosModal.map(evento => {
+                  const selected = selectedEventoModalId === evento.id;
+                  const dataFormatada = new Date(evento.dataEvento).toLocaleDateString('pt-BR', {
+                    weekday: 'long', day: '2-digit', month: 'long', year: 'numeric',
+                  });
+                  return (
+                    <button
+                      key={evento.id}
+                      type="button"
+                      onClick={() => setSelectedEventoModalId(evento.id)}
+                      className={[
+                        'w-full flex items-start gap-3 p-4 rounded-xl border-2 text-left transition-all',
+                        selected
+                          ? 'border-brand-500 bg-brand-50'
+                          : 'border-gray-200 hover:border-brand-300 hover:bg-gray-50',
+                      ].join(' ')}
+                    >
+                      <div className={[
+                        'mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors',
+                        selected ? 'border-brand-500' : 'border-gray-300',
+                      ].join(' ')}>
+                        {selected && <div className="w-2.5 h-2.5 rounded-full bg-brand-500" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-semibold capitalize-first ${selected ? 'text-brand-700' : 'text-gray-800'}`}>
+                          {evento.nome}
+                        </p>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <CalendarDays size={11} className="text-gray-400 shrink-0" />
+                          <p className="text-xs text-gray-500 capitalize">{dataFormatada}</p>
+                        </div>
+                        {evento.localEvento && (
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <MapPin size={11} className="text-gray-400 shrink-0" />
+                            <p className="text-xs text-gray-500 truncate">{evento.localEvento}</p>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 mt-1.5">
+                          {evento.submissaoAberta ? (
+                            <span className="text-[10px] font-semibold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                              Submissão aberta
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                              Submissão fechada
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="flex-shrink-0 px-4 sm:px-8 py-4 bg-white border-t border-gray-100">
+            <div className={`flex items-center gap-3 ${isAdminOrCoord ? 'justify-between' : 'justify-end'}`}>
+              {isAdminOrCoord && (
+                <button
+                  type="button"
+                  onClick={() => setEventoSelecionado(true)}
+                  className="text-sm text-gray-500 hover:text-gray-700 font-medium"
+                >
+                  Continuar sem evento
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleConfirmarEvento}
+                disabled={!selectedEventoModalId}
+                className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-5 py-2 rounded-lg transition-colors"
+              >
+                Continuar <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Loading overlay ─────────────────────────────────────────────────── */}
       {(mutation.isPending || (isEditing && loadingProjeto)) && (

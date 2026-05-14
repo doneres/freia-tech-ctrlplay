@@ -75,6 +75,13 @@ public class EventoService {
                 .dataFimSubmissao(e.getDataFimSubmissao())
                 .descricao(e.getDescricao())
                 .submissaoAberta(aberta)
+                .localEvento(e.getLocalEvento())
+                .qtdMesas(e.getQtdMesas())
+                .qtdComputadores(e.getQtdComputadores())
+                .qtdCelularesTablets(e.getQtdCelularesTablets())
+                .qtdSalas(e.getQtdSalas())
+                .qtdProjetores(e.getQtdProjetores())
+                .capacidadePorTurno(e.getCapacidadePorTurno())
                 .createdAt(e.getCreatedAt())
                 .updatedAt(e.getUpdatedAt())
                 .build();
@@ -86,5 +93,12 @@ public class EventoService {
         evento.setDataInicioSubmissao(dto.getDataInicioSubmissao());
         evento.setDataFimSubmissao(dto.getDataFimSubmissao());
         evento.setDescricao(dto.getDescricao());
+        evento.setLocalEvento(dto.getLocalEvento());
+        evento.setQtdMesas(dto.getQtdMesas());
+        evento.setQtdComputadores(dto.getQtdComputadores());
+        evento.setQtdCelularesTablets(dto.getQtdCelularesTablets());
+        evento.setQtdSalas(dto.getQtdSalas());
+        evento.setQtdProjetores(dto.getQtdProjetores());
+        evento.setCapacidadePorTurno(dto.getCapacidadePorTurno());
     }
 }

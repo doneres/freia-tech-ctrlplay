@@ -9,6 +9,13 @@ export interface Evento {
   dataFimSubmissao: string | null;
   descricao: string | null;
   submissaoAberta: boolean;
+  localEvento: string | null;
+  qtdMesas: number | null;
+  qtdComputadores: number | null;
+  qtdCelularesTablets: number | null;
+  qtdSalas: number | null;
+  qtdProjetores: number | null;
+  capacidadePorTurno: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -19,6 +26,13 @@ export interface EventoRequest {
   dataInicioSubmissao?: string | null;
   dataFimSubmissao?: string | null;
   descricao?: string;
+  localEvento?: string | null;
+  qtdMesas?: number | null;
+  qtdComputadores?: number | null;
+  qtdCelularesTablets?: number | null;
+  qtdSalas?: number | null;
+  qtdProjetores?: number | null;
+  capacidadePorTurno?: number | null;
 }
 
 export async function listarEventos(): Promise<Evento[]> {

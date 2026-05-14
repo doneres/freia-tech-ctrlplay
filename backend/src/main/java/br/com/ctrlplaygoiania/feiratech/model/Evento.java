@@ -30,6 +30,16 @@ public class Evento {
     @Column(columnDefinition = "TEXT")
     private String descricao;
 
+    @Column(length = 300)
+    private String localEvento;
+
+    private Integer qtdMesas;
+    private Integer qtdComputadores;
+    private Integer qtdCelularesTablets;
+    private Integer qtdSalas;
+    private Integer qtdProjetores;
+    private Integer capacidadePorTurno;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;

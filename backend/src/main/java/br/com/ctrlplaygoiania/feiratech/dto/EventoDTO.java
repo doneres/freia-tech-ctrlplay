@@ -20,6 +20,13 @@ public class EventoDTO {
         private LocalDateTime dataInicioSubmissao;
         private LocalDateTime dataFimSubmissao;
         private String descricao;
+        private String localEvento;
+        private Integer qtdMesas;
+        private Integer qtdComputadores;
+        private Integer qtdCelularesTablets;
+        private Integer qtdSalas;
+        private Integer qtdProjetores;
+        private Integer capacidadePorTurno;
     }
 
     @Data @Builder @AllArgsConstructor @NoArgsConstructor
@@ -31,6 +38,13 @@ public class EventoDTO {
         private LocalDateTime dataFimSubmissao;
         private String descricao;
         private boolean submissaoAberta;
+        private String localEvento;
+        private Integer qtdMesas;
+        private Integer qtdComputadores;
+        private Integer qtdCelularesTablets;
+        private Integer qtdSalas;
+        private Integer qtdProjetores;
+        private Integer capacidadePorTurno;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
     }
