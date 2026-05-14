@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  MessageSquare, Plus, ChevronDown, ChevronUp, Pin, Trash2, Send, X, Loader2,
+  MessageSquare, Plus, ChevronDown, ChevronUp, Pin, Trash2, Send, X, Loader2, Search,
 } from 'lucide-react';
 import {
   listarPosts, buscarPost, criarPost, responderPost, deletarPost, fixarPost,
@@ -36,6 +36,7 @@ export default function ForumPage() {
 
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
   const [categoriaFilter, setCategoriaFilter] = useState<CategoriaForum | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
 
@@ -79,9 +80,14 @@ export default function ForumPage() {
     },
   });
 
-  const filteredPosts = categoriaFilter
-    ? posts.filter(p => p.categoria === categoriaFilter)
-    : posts;
+  const filteredPosts = posts.filter(p => {
+    if (categoriaFilter && p.categoria !== categoriaFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return p.titulo.toLowerCase().includes(q) || p.conteudo?.toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   const pinnedPosts = filteredPosts.filter(p => p.fixado);
   const regularPosts = filteredPosts.filter(p => !p.fixado);
@@ -118,6 +124,23 @@ export default function ForumPage() {
           <Plus size={16} />
           Novo post
         </button>
+      </div>
+
+      {/* Search */}
+      <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 mb-4 bg-white">
+        <Search size={15} className="text-gray-400 shrink-0" />
+        <input
+          type="text"
+          placeholder="Buscar posts..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="flex-1 text-sm outline-none bg-transparent"
+        />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery('')} className="text-gray-400 hover:text-gray-600">
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {/* Category filter chips */}
