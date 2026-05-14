@@ -51,6 +51,8 @@ import java.util.UUID;
 @Slf4j
 public class ProjetoService {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final ProjetoRepository projetoRepository;
     private final UsuarioRepository usuarioRepository;
     private final EventoRepository eventoRepository;
@@ -60,7 +62,6 @@ public class ProjetoService {
     private final EmailService emailService;
     private final EventoService eventoService;
     private final EtapaAprovacaoService etapaAprovacaoService;
-    private final ObjectMapper objectMapper;
 
     @Transactional(readOnly = true)
     public List<ProjetoDTO.Response> listarTodos(
@@ -197,7 +198,7 @@ public class ProjetoService {
         try {
             String raw = projeto.getDadosFormulario();
             dados = raw != null && !raw.isBlank()
-                    ? objectMapper.readValue(raw, new TypeReference<>() {})
+                    ? MAPPER.readValue(raw, new TypeReference<>() {})
                     : Map.of();
         } catch (Exception e) {
             throw new BusinessException("dadosFormulario inválido: não é um JSON válido");
@@ -205,7 +206,7 @@ public class ProjetoService {
 
         List<Map<String, Object>> campos;
         try {
-            campos = objectMapper.readValue(tipoEvento.getFormSchema(), new TypeReference<>() {});
+            campos = MAPPER.readValue(tipoEvento.getFormSchema(), new TypeReference<>() {});
         } catch (Exception e) {
             log.warn("formSchema inválido no TipoEvento {}: {}", tipoEvento.getId(), e.getMessage());
             return;
@@ -235,7 +236,7 @@ public class ProjetoService {
     private void iniciarWorkflow(Projeto projeto, TipoEvento tipoEvento) {
         List<Map<String, Object>> steps;
         try {
-            steps = objectMapper.readValue(tipoEvento.getWorkflowConfig(), new TypeReference<>() {});
+            steps = MAPPER.readValue(tipoEvento.getWorkflowConfig(), new TypeReference<>() {});
         } catch (Exception e) {
             log.warn("workflowConfig inválido no TipoEvento {}: {}", tipoEvento.getId(), e.getMessage());
             return;
