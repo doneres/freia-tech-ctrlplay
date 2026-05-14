@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Search, Filter, Loader2, ChevronRight, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Filter, Loader2, ChevronRight, ArrowUpDown, ChevronLeft } from 'lucide-react';
+
+const PAGE_SIZE = 10;
 import { listarProjetos, type ProjetoFilters } from '../api/projetos';
 import { listarInstrutores } from '../api/usuarios';
 import { listarEstoque } from '../api/estoque';
@@ -78,12 +80,14 @@ export default function ProjetosPage() {
   const [itemEstoqueId, setItemEstoqueId] = useState(saved.itemEstoqueId);
   const [eventoId, setEventoId] = useState(saved.eventoId ?? '');
   const [sortBy, setSortBy] = useState<SortKey>(saved.sortBy ?? 'recentes');
+  const [page, setPage] = useState(1);
 
   const isInstrutor = user?.perfil === 'INSTRUTOR';
 
   useEffect(() => {
     const filters: SavedFilters = { search, statusProjeto, turno, nivelTurma, instrutorId, itemEstoqueId, eventoId, sortBy };
     sessionStorage.setItem(FILTERS_KEY, JSON.stringify(filters));
+    setPage(1);
   }, [search, statusProjeto, turno, nivelTurma, instrutorId, itemEstoqueId, eventoId, sortBy]);
 
   const queryFilters: ProjetoFilters = {
@@ -114,6 +118,9 @@ export default function ProjetosPage() {
     }
   }, [projetos, sortBy]);
 
+  const totalPages = Math.max(1, Math.ceil(sortedProjetos.length / PAGE_SIZE));
+  const paginatedProjetos = sortedProjetos.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   const { data: instrutores = [] } = useQuery({
     queryKey: ['instrutores'],
     queryFn: listarInstrutores,
@@ -139,8 +146,8 @@ export default function ProjetosPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Projetos</h1>
           <p className="text-gray-500 text-sm mt-1">
-            {projetos.length} projeto{projetos.length !== 1 ? 's' : ''} encontrado
-            {projetos.length !== 1 ? 's' : ''}
+            {sortedProjetos.length} projeto{sortedProjetos.length !== 1 ? 's' : ''} encontrado
+            {sortedProjetos.length !== 1 ? 's' : ''}
           </p>
         </div>
         {canCreateProject && (
@@ -276,73 +283,99 @@ export default function ProjetosPage() {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {sortedProjetos.map((projeto, i) => (
-            <Link
-              key={projeto.id}
-              to={`/projetos/${projeto.id}`}
-              className={`flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors ${
-                i !== 0 ? 'border-t border-gray-100' : ''
-              }`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3">
-                  <p className="text-sm font-semibold text-gray-900 truncate">
-                    {projeto.nomeProjeto ?? 'Sem nome'}
+        <>
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            {paginatedProjetos.map((projeto, i) => (
+              <Link
+                key={projeto.id}
+                to={`/projetos/${projeto.id}`}
+                className={`flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors ${
+                  i !== 0 ? 'border-t border-gray-100' : ''
+                }`}
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {projeto.nomeProjeto ?? 'Sem nome'}
+                    </p>
+                    <StatusBadge type="projeto" value={projeto.statusProjeto} />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
+                    <span>{projeto.instrutor?.nome}</span>
+                    {projeto.evento && (
+                      <>
+                        <span className="text-gray-300">•</span>
+                        <span className="text-brand-600">{projeto.evento.nome}</span>
+                      </>
+                    )}
+                    {projeto.codigoTurma && (
+                      <>
+                        <span className="text-gray-300">•</span>
+                        <span>{projeto.codigoTurma}</span>
+                      </>
+                    )}
+                    {projeto.turno && (
+                      <>
+                        <span className="text-gray-300">•</span>
+                        <span>{projeto.turno === 'MANHA' ? 'Manhã' : projeto.turno === 'TARDE' ? 'Tarde' : 'Noite'}</span>
+                      </>
+                    )}
+                    {projeto.nivelTurma && (
+                      <>
+                        <span className="text-gray-300">•</span>
+                        <span>{projeto.nivelTurma}</span>
+                      </>
+                    )}
+                    {projeto.qtdAlunos != null && projeto.qtdAlunos > 0 && (
+                      <>
+                        <span className="text-gray-300">•</span>
+                        <span>{projeto.qtdAlunos} aluno{projeto.qtdAlunos !== 1 ? 's' : ''}</span>
+                      </>
+                    )}
+                    {projeto.createdAt && (
+                      <>
+                        <span className="text-gray-300">•</span>
+                        <span>{new Date(projeto.createdAt).toLocaleDateString('pt-BR')}</span>
+                      </>
+                    )}
                   </p>
-                  <StatusBadge type="projeto" value={projeto.statusProjeto} />
                 </div>
-                <p className="text-xs text-gray-500 mt-1 flex items-center gap-2 flex-wrap">
-                  <span>{projeto.instrutor?.nome}</span>
-                  {projeto.evento && (
-                    <>
-                      <span className="text-gray-300">•</span>
-                      <span className="text-brand-600">{projeto.evento.nome}</span>
-                    </>
+                <div className="flex items-center gap-4 shrink-0 ml-4">
+                  {projeto.materiais?.length > 0 && (
+                    <span className="text-xs text-gray-400">
+                      {projeto.materiais.length} material{projeto.materiais.length !== 1 ? 'is' : ''}
+                    </span>
                   )}
-                  {projeto.codigoTurma && (
-                    <>
-                      <span className="text-gray-300">•</span>
-                      <span>{projeto.codigoTurma}</span>
-                    </>
-                  )}
-                  {projeto.turno && (
-                    <>
-                      <span className="text-gray-300">•</span>
-                      <span>{projeto.turno === 'MANHA' ? 'Manhã' : projeto.turno === 'TARDE' ? 'Tarde' : 'Noite'}</span>
-                    </>
-                  )}
-                  {projeto.nivelTurma && (
-                    <>
-                      <span className="text-gray-300">•</span>
-                      <span>{projeto.nivelTurma}</span>
-                    </>
-                  )}
-                  {projeto.qtdAlunos != null && projeto.qtdAlunos > 0 && (
-                    <>
-                      <span className="text-gray-300">•</span>
-                      <span>{projeto.qtdAlunos} aluno{projeto.qtdAlunos !== 1 ? 's' : ''}</span>
-                    </>
-                  )}
-                  {projeto.createdAt && (
-                    <>
-                      <span className="text-gray-300">•</span>
-                      <span>{new Date(projeto.createdAt).toLocaleDateString('pt-BR')}</span>
-                    </>
-                  )}
-                </p>
+                  <ChevronRight size={16} className="text-gray-400" />
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 px-1">
+              <p className="text-xs text-gray-500">
+                Página {page} de {totalPages} · {sortedProjetos.length} projeto{sortedProjetos.length !== 1 ? 's' : ''}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft size={14} /> Anterior
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Próxima <ChevronRight size={14} />
+                </button>
               </div>
-              <div className="flex items-center gap-4 shrink-0 ml-4">
-                {projeto.materiais?.length > 0 && (
-                  <span className="text-xs text-gray-400">
-                    {projeto.materiais.length} material{projeto.materiais.length !== 1 ? 'is' : ''}
-                  </span>
-                )}
-                <ChevronRight size={16} className="text-gray-400" />
-              </div>
-            </Link>
-          ))}
-        </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
