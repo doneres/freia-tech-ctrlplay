@@ -5,7 +5,7 @@ import axios from 'axios';
 // com a porta do backend — funciona em qualquer servidor sem reconfigurar.
 const baseURL =
   import.meta.env.VITE_API_URL ||
-  `http://${window.location.hostname}:8081/api`;
+  `http://${window.location.hostname}:8080/api`;
 
 const api = axios.create({
   baseURL,
