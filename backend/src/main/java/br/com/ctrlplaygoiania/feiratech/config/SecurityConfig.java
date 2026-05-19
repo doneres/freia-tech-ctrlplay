@@ -2,8 +2,10 @@ package br.com.ctrlplaygoiania.feiratech.config;
 
 import br.com.ctrlplaygoiania.feiratech.security.JwtAuthenticationFilter;
 import br.com.ctrlplaygoiania.feiratech.security.UserDetailsServiceImpl;
-import lombok.RequiredArgsConstructor;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,6 +20,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.header.writers.StaticHeadersWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -28,6 +31,7 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
+@Slf4j
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
@@ -36,6 +40,15 @@ public class SecurityConfig {
     // Em produção defina CORS_ALLOWED_ORIGINS com a origem exata do frontend, ex: https://feiratech.ctrlplay.com.br
     @Value("${CORS_ALLOWED_ORIGINS:*}")
     private String corsAllowedOrigins;
+
+    @PostConstruct
+    public void logSecurityConfig() {
+        if ("*".equals(corsAllowedOrigins.trim())) {
+            log.warn("[SECURITY] CORS configurado com wildcard (*). " +
+                     "Em produção defina CORS_ALLOWED_ORIGINS no backend/.env " +
+                     "com a origem exata do frontend.");
+        }
+    }
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
@@ -60,6 +73,16 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .headers(headers -> headers
+                        .frameOptions(fo -> fo.deny())
+                        .contentTypeOptions(cto -> {})
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Referrer-Policy", "strict-origin-when-cross-origin"))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "Permissions-Policy", "geolocation=(), camera=(), microphone=()"))
+                        .addHeaderWriter(new StaticHeadersWriter(
+                                "X-Content-Type-Options", "nosniff"))
+                )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**",

@@ -29,7 +29,7 @@ public class UsuarioDTO {
         private String email;
 
         @NotBlank(message = "Senha é obrigatória")
-        @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
+        @Size(min = 8, message = "Senha deve ter no mínimo 8 caracteres")
         private String senha;
 
         @NotNull(message = "Perfil é obrigatório")
@@ -83,7 +83,7 @@ public class UsuarioDTO {
         private String senhaAtual;
 
         @NotBlank(message = "Nova senha é obrigatória")
-        @Size(min = 6, message = "Nova senha deve ter no mínimo 6 caracteres")
+        @Size(min = 8, message = "Nova senha deve ter no mínimo 8 caracteres")
         private String novaSenha;
     }
 

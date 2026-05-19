@@ -11,7 +11,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -20,8 +19,6 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class UsuarioService {
-
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UsuarioRepository usuarioRepository;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -68,8 +65,8 @@ public class UsuarioService {
         usuario.setNome(dto.getNome());
         usuario.setEmail(dto.getEmail());
         if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
-            if (dto.getSenha().length() < 6) {
-                throw new BusinessException("Senha deve ter no mínimo 6 caracteres");
+            if (dto.getSenha().length() < 8) {
+                throw new BusinessException("Senha deve ter no mínimo 8 caracteres");
             }
             usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
         }
@@ -128,8 +125,9 @@ public class UsuarioService {
         Optional<Usuario> opt = usuarioRepository.findByEmail(email);
         if (opt.isEmpty()) return;
         Usuario usuario = opt.get();
-        String codigo = String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
-        usuario.setResetCode(codigo);
+        // Token criptograficamente forte de 32 chars hex (128 bits de entropia)
+        String codigo = UUID.randomUUID().toString().replace("-", "");
+        usuario.setResetCode(passwordEncoder.encode(codigo));
         usuario.setResetCodeExpiry(LocalDateTime.now().plusMinutes(15));
         usuarioRepository.save(usuario);
         emailService.notificarCodigoReset(email, usuario.getNome(), codigo);
@@ -137,9 +135,13 @@ public class UsuarioService {
 
     @Transactional
     public void confirmarReset(String email, String codigo, String novaSenha) {
+        if (novaSenha == null || novaSenha.length() < 8) {
+            throw new BusinessException("Nova senha deve ter no mínimo 8 caracteres");
+        }
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException("Código inválido ou expirado"));
-        if (usuario.getResetCode() == null || !usuario.getResetCode().equals(codigo)) {
+        if (usuario.getResetCode() == null
+                || !passwordEncoder.matches(codigo, usuario.getResetCode())) {
             throw new BusinessException("Código inválido ou expirado");
         }
         if (LocalDateTime.now().isAfter(usuario.getResetCodeExpiry())) {
