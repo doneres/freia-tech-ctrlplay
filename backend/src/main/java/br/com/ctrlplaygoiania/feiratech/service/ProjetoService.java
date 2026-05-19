@@ -89,6 +89,12 @@ public class ProjetoService {
         projeto.setInstrutor(instrutor);
         projeto.setStatusProjeto(StatusProjeto.RASCUNHO);
 
+        if (dto.getEventoId() != null) {
+            Evento evento = eventoRepository.findById(dto.getEventoId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Evento", dto.getEventoId()));
+            projeto.setEvento(evento);
+        }
+
         if (dto.getMateriais() != null) {
             dto.getMateriais().stream()
                     .map(m -> toMaterialEntity(m, projeto))

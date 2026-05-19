@@ -44,7 +44,7 @@ public class TipoEventoService {
         TipoEvento tipo = buscarEntidade(id);
         // Bump schemaVersion whenever the formSchema changes
         if (dto.getFormSchema() != null && !dto.getFormSchema().equals(tipo.getFormSchema())) {
-            tipo.setSchemaVersion(tipo.getSchemaVersion() + 1);
+            tipo.setSchemaVersion((tipo.getSchemaVersion() != null ? tipo.getSchemaVersion() : 0) + 1);
         }
         mapRequest(dto, tipo);
         return toResponse(repository.save(tipo));
