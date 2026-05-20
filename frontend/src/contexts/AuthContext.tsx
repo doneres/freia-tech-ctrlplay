@@ -6,6 +6,7 @@ interface AuthContextValue {
   signIn: (user: AuthUser) => void;
   signOut: () => void;
   updateUser: (updates: Partial<Pick<AuthUser, 'nome' | 'email' | 'telefone' | 'fotoPerfil'>>) => void;
+  hasPermissao: (permissao: string) => boolean;
   isAuthenticated: boolean;
 }
 
@@ -42,8 +43,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const hasPermissao = useCallback((permissao: string) => {
+    if (!user) return false;
+    if (user.perfil === 'ADMINISTRADOR') return true;
+    return (user.permissoes ?? []).includes(permissao);
+  }, [user]);
+
   return (
-    <AuthContext.Provider value={{ user, signIn, signOut, updateUser, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, signIn, signOut, updateUser, hasPermissao, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

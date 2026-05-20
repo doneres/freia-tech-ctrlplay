@@ -4,7 +4,8 @@ import br.com.ctrlplaygoiania.feiratech.dto.UsuarioDTO;
 import br.com.ctrlplaygoiania.feiratech.exception.BusinessException;
 import br.com.ctrlplaygoiania.feiratech.exception.ResourceNotFoundException;
 import br.com.ctrlplaygoiania.feiratech.model.Usuario;
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
+import br.com.ctrlplaygoiania.feiratech.model.PerfilPermissao;
+import br.com.ctrlplaygoiania.feiratech.repository.PerfilPermissaoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -21,6 +22,7 @@ import java.util.UUID;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final PerfilPermissaoRepository perfilPermissaoRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final EmailService emailService;
 
@@ -114,7 +116,7 @@ public class UsuarioService {
     }
 
     @Transactional(readOnly = true)
-    public List<UsuarioDTO.Response> listarPorPerfil(PerfilUsuario perfil) {
+    public List<UsuarioDTO.Response> listarPorPerfil(String perfil) {
         return usuarioRepository.findByPerfil(perfil).stream()
                 .map(this::toResponse)
                 .toList();
@@ -160,7 +162,10 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário", id));
     }
 
-    private UsuarioDTO.Response toResponse(Usuario usuario) {
+    public UsuarioDTO.Response toResponse(Usuario usuario) {
+        List<String> permissoes = perfilPermissaoRepository.findByPerfilNome(usuario.getPerfil()).stream()
+                .map(PerfilPermissao::getPermissao)
+                .toList();
         return UsuarioDTO.Response.builder()
                 .id(usuario.getId())
                 .nome(usuario.getNome())
@@ -168,6 +173,7 @@ public class UsuarioService {
                 .telefone(usuario.getTelefone())
                 .fotoPerfil(usuario.getFotoPerfil())
                 .perfil(usuario.getPerfil())
+                .permissoes(permissoes)
                 .ativo(usuario.getAtivo())
                 .createdAt(usuario.getCreatedAt())
                 .build();

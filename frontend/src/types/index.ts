@@ -1,4 +1,4 @@
-export type PerfilUsuario = 'ADMINISTRADOR' | 'INSTRUTOR' | 'COORDENACAO' | 'MONITOR' | 'COMERCIAL';
+export type PerfilUsuario = 'ADMINISTRADOR' | 'INSTRUTOR' | 'COORDENACAO' | 'MONITOR' | 'COMERCIAL' | (string & {});
 export type StatusEtapaAprovacao = 'PENDENTE' | 'APROVADO' | 'REPROVADO';
 export type TipoProjeto = 'HARDWARE' | 'SOFTWARE';
 export type TipoItemEstoque = 'HARDWARE' | 'SOFTWARE' | 'PERIFERICO' | 'PAPELARIA';
@@ -34,9 +34,22 @@ export interface AuthUser {
   nome: string;
   email: string;
   perfil: PerfilUsuario;
+  permissoes: string[];
   token: string;
   telefone?: string;
   fotoPerfil?: string;
+}
+
+export interface PerfilConfig {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  builtin: boolean;
+  ativo: boolean;
+  cor: string | null;
+  permissoes: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Usuario {
@@ -46,6 +59,7 @@ export interface Usuario {
   telefone?: string;
   fotoPerfil?: string;
   perfil: PerfilUsuario;
+  permissoes?: string[];
   ativo: boolean;
   createdAt: string;
 }

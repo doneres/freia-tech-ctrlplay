@@ -1,11 +1,11 @@
 import api from './client';
-import type { ApiResponse, Usuario, PerfilUsuario } from '../types';
+import type { ApiResponse, Usuario } from '../types';
 
 export interface UsuarioRequest {
   nome: string;
   email: string;
   senha: string;
-  perfil: PerfilUsuario;
+  perfil: string;
 }
 
 export async function listarUsuarios(): Promise<Usuario[]> {

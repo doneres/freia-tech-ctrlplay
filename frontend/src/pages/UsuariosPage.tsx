@@ -2,21 +2,20 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, X, Loader2, UserX, UserCheck, Pencil } from 'lucide-react';
 import { listarUsuarios, criarUsuario, atualizarUsuario, desativarUsuario, reativarUsuario, type UsuarioRequest } from '../api/usuarios';
-import type { Usuario, PerfilUsuario } from '../types';
+import { listarPerfisAtivos } from '../api/perfis';
+import type { Usuario, PerfilConfig } from '../types';
 
-const perfilLabels: Record<PerfilUsuario, string> = {
-  ADMINISTRADOR: 'Administrador',
-  INSTRUTOR: 'Instrutor',
-  COORDENACAO: 'Coordenação',
-  MONITOR: 'Monitor',
-};
-
-const perfilColors: Record<PerfilUsuario, string> = {
+const perfilColors: Record<string, string> = {
   ADMINISTRADOR: 'bg-brand-100 text-brand-700',
   INSTRUTOR: 'bg-blue-100 text-blue-700',
   COORDENACAO: 'bg-green-100 text-green-700',
   MONITOR: 'bg-amber-100 text-amber-700',
+  COMERCIAL: 'bg-pink-100 text-pink-700',
 };
+
+function perfilColor(nome: string): string {
+  return perfilColors[nome] ?? 'bg-gray-100 text-gray-700';
+}
 
 const emptyForm: UsuarioRequest = { nome: '', email: '', senha: '', perfil: 'INSTRUTOR' };
 
@@ -31,6 +30,11 @@ export default function UsuariosPage() {
   const { data: usuarios = [], isLoading } = useQuery<Usuario[]>({
     queryKey: ['usuarios'],
     queryFn: listarUsuarios,
+  });
+
+  const { data: perfisAtivos = [] } = useQuery<PerfilConfig[]>({
+    queryKey: ['perfis-ativos'],
+    queryFn: listarPerfisAtivos,
   });
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['usuarios'] });
@@ -140,8 +144,8 @@ export default function UsuariosPage() {
                     <p className="text-sm font-semibold text-gray-900 truncate">{u.nome}</p>
                     <p className="text-xs text-gray-500 mt-0.5 truncate">{u.email}</p>
                     <div className="flex items-center flex-wrap gap-2 mt-2">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${perfilColors[u.perfil]}`}>
-                        {perfilLabels[u.perfil]}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${perfilColor(u.perfil)}`}>
+                        {u.perfil}
                       </span>
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${u.ativo ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                         {u.ativo ? 'Ativo' : 'Inativo'}
@@ -207,8 +211,8 @@ export default function UsuariosPage() {
                     <td className="px-5 py-3.5 font-medium text-gray-900">{u.nome}</td>
                     <td className="px-5 py-3.5 text-gray-600">{u.email}</td>
                     <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${perfilColors[u.perfil]}`}>
-                        {perfilLabels[u.perfil]}
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${perfilColor(u.perfil)}`}>
+                        {u.perfil}
                       </span>
                     </td>
                     <td className="px-5 py-3.5">
@@ -324,13 +328,12 @@ export default function UsuariosPage() {
                 <label className="block text-xs font-medium text-gray-700 mb-1">Perfil *</label>
                 <select
                   value={form.perfil}
-                  onChange={(e) => setForm((p) => ({ ...p, perfil: e.target.value as PerfilUsuario }))}
+                  onChange={(e) => setForm((p) => ({ ...p, perfil: e.target.value }))}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
                 >
-                  <option value="INSTRUTOR">Instrutor</option>
-                  <option value="COORDENACAO">Coordenação</option>
-                  <option value="MONITOR">Monitor</option>
-                  <option value="ADMINISTRADOR">Administrador</option>
+                  {perfisAtivos.map(p => (
+                    <option key={p.nome} value={p.nome}>{p.nome}</option>
+                  ))}
                 </select>
               </div>
 

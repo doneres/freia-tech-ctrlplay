@@ -6,7 +6,6 @@ import br.com.ctrlplaygoiania.feiratech.exception.ResourceNotFoundException;
 import br.com.ctrlplaygoiania.feiratech.model.ItemEstoque;
 import br.com.ctrlplaygoiania.feiratech.model.PapelariaItem;
 import br.com.ctrlplaygoiania.feiratech.model.Projeto;
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusCompra;
 import br.com.ctrlplaygoiania.feiratech.repository.PapelariaItemRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.ProjetoRepository;
@@ -188,7 +187,7 @@ public class PapelariaItemService {
 
         switch (novoStatus) {
             case AGUARDANDO_APROVACAO ->
-                usuarioRepository.findByPerfil(PerfilUsuario.COORDENACAO).forEach(coord ->
+                usuarioRepository.findByPerfil("COORDENACAO").forEach(coord ->
                         emailService.notificarSolicitacaoCompra(coord.getEmail(), nomeProjeto, nomeItem));
             case APROVADO ->
                 emailService.notificarCompraAprovada(emailInstrutor, nomeProjeto, nomeItem);

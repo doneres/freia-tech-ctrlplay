@@ -7,7 +7,6 @@ import br.com.ctrlplaygoiania.feiratech.exception.ResourceNotFoundException;
 import br.com.ctrlplaygoiania.feiratech.model.Projeto;
 import br.com.ctrlplaygoiania.feiratech.model.RegistroAcompanhamento;
 import br.com.ctrlplaygoiania.feiratech.model.Usuario;
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import br.com.ctrlplaygoiania.feiratech.repository.ProjetoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.RegistroAcompanhamentoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.UsuarioRepository;
@@ -59,7 +58,7 @@ public class AcompanhamentoService {
         }
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
                 .orElseThrow(() -> new BusinessException("Usuário não encontrado"));
-        boolean isAdmin = usuario.getPerfil() == PerfilUsuario.ADMINISTRADOR;
+        boolean isAdmin = "ADMINISTRADOR".equals(usuario.getPerfil());
         boolean isAutor = registro.getAutor().getId().equals(usuario.getId());
         if (!isAdmin && !isAutor) {
             throw new BusinessException("Sem permissão para excluir este registro");

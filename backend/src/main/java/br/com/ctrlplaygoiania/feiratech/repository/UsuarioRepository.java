@@ -1,7 +1,6 @@
 package br.com.ctrlplaygoiania.feiratech.repository;
 
 import br.com.ctrlplaygoiania.feiratech.model.Usuario;
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,7 +13,7 @@ public interface UsuarioRepository extends JpaRepository<Usuario, UUID> {
 
     Optional<Usuario> findByEmail(String email);
 
-    List<Usuario> findByPerfil(PerfilUsuario perfil);
+    List<Usuario> findByPerfil(String perfil);
 
     List<Usuario> findByAtivoTrue();
 

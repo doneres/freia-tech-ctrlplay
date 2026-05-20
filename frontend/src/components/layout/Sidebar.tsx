@@ -4,7 +4,7 @@ import {
   LayoutDashboard, FolderKanban, Users, LogOut, Package, Code2,
   FileSpreadsheet, X, CalendarDays, MessageSquare, ShoppingCart,
   Settings, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  Layers,
+  Layers, ShieldCheck,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -26,7 +26,7 @@ interface NavGroup {
 }
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
-  const { user, signOut } = useAuth();
+  const { user, signOut, hasPermissao } = useAuth();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('sidebar-collapsed') === 'true'
@@ -54,17 +54,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     });
   }
 
-  const canManageUsers = user?.perfil === "ADMINISTRADOR";
-  const canManageEstoque =
-    user?.perfil === "ADMINISTRADOR" || user?.perfil === "COORDENACAO" || user?.perfil === "MONITOR";
-  const canManageFerramentas = user?.perfil === "ADMINISTRADOR";
-  const canViewRelatorios =
-    user?.perfil === "ADMINISTRADOR" || user?.perfil === "COORDENACAO" ||
-    user?.perfil === "INSTRUTOR" || user?.perfil === "MONITOR";
-  const canViewSolicitacoes =
-    user?.perfil === "ADMINISTRADOR" || user?.perfil === "COORDENACAO";
-  const canManageTiposEvento =
-    user?.perfil === "ADMINISTRADOR" || user?.perfil === "COORDENACAO";
+  const canManageUsers = hasPermissao("VER_USUARIOS");
+  const canManageEstoque = hasPermissao("VER_ESTOQUE");
+  const canManageFerramentas = hasPermissao("VER_FERRAMENTAS");
+  const canViewRelatorios = hasPermissao("VER_RELATORIOS_ESTOQUE") || hasPermissao("VER_RELATORIOS_PROJETOS") || hasPermissao("VER_RELATORIOS_PROPRIOS");
+  const canViewSolicitacoes = hasPermissao("VER_SOLICITACOES");
+  const canManageTiposEvento = hasPermissao("VER_TIPOS_EVENTO");
+  const canManagePerfis = hasPermissao("GERENCIAR_PERFIS");
 
   function handleSignOut() {
     signOut();
@@ -87,6 +83,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     ...(canManageFerramentas ? [{ to: "/ferramentas", icon: Code2, label: "Ferramentas" }] : []),
     ...(canViewRelatorios ? [{ to: "/relatorios", icon: FileSpreadsheet, label: "Relatórios" }] : []),
     ...(canManageUsers ? [{ to: "/usuarios", icon: Users, label: "Usuários" }] : []),
+    ...(canManagePerfis ? [{ to: "/perfis", icon: ShieldCheck, label: "Perfis de Acesso" }] : []),
   ];
 
   const groups: NavGroup[] = [

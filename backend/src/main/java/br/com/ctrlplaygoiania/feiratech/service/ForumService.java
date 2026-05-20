@@ -7,7 +7,6 @@ import br.com.ctrlplaygoiania.feiratech.exception.ResourceNotFoundException;
 import br.com.ctrlplaygoiania.feiratech.model.PostForum;
 import br.com.ctrlplaygoiania.feiratech.model.RespostaForum;
 import br.com.ctrlplaygoiania.feiratech.model.Usuario;
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import br.com.ctrlplaygoiania.feiratech.repository.PostForumRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.RespostaForumRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.UsuarioRepository;
@@ -71,7 +70,7 @@ public class ForumService {
                 .orElseThrow(() -> new ResourceNotFoundException("Post", id));
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
                 .orElseThrow(() -> new BusinessException("Usuário não encontrado"));
-        boolean isAdmin = usuario.getPerfil() == PerfilUsuario.ADMINISTRADOR;
+        boolean isAdmin = "ADMINISTRADOR".equals(usuario.getPerfil());
         boolean isAutor = post.getAutor().getId().equals(usuario.getId());
         if (!isAdmin && !isAutor) {
             throw new BusinessException("Sem permissão para excluir este post");

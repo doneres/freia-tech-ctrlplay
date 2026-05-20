@@ -2,7 +2,6 @@ package br.com.ctrlplaygoiania.feiratech.controller;
 
 import br.com.ctrlplaygoiania.feiratech.dto.ApiResponse;
 import br.com.ctrlplaygoiania.feiratech.dto.UsuarioDTO;
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import br.com.ctrlplaygoiania.feiratech.service.UsuarioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -56,7 +55,7 @@ public class UsuarioController {
 
     @GetMapping("/perfil/{perfil}")
     public ResponseEntity<ApiResponse<List<UsuarioDTO.Response>>> listarPorPerfil(
-            @PathVariable PerfilUsuario perfil) {
+            @PathVariable String perfil) {
         return ResponseEntity.ok(ApiResponse.ok(usuarioService.listarPorPerfil(perfil)));
     }
 

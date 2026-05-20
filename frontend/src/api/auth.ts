@@ -13,14 +13,15 @@ interface LoginResponse {
   nome: string;
   email: string;
   perfil: AuthUser['perfil'];
+  permissoes: string[];
   telefone?: string;
   fotoPerfil?: string;
 }
 
 export async function login(data: LoginRequest): Promise<AuthUser> {
   const res = await api.post<ApiResponse<LoginResponse>>('/auth/login', data);
-  const { token, id, nome, email, perfil, telefone, fotoPerfil } = res.data.data;
-  return { token, id, nome, email, perfil, telefone, fotoPerfil };
+  const { token, id, nome, email, perfil, permissoes, telefone, fotoPerfil } = res.data.data;
+  return { token, id, nome, email, perfil, permissoes: permissoes ?? [], telefone, fotoPerfil };
 }
 
 export async function solicitarReset(email: string): Promise<void> {

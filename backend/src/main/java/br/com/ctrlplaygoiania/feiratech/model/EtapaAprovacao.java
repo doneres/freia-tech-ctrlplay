@@ -1,6 +1,5 @@
 package br.com.ctrlplaygoiania.feiratech.model;
 
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusEtapaAprovacao;
 import jakarta.persistence.*;
 import lombok.*;
@@ -33,9 +32,8 @@ public class EtapaAprovacao {
     @Column(nullable = false, length = 20)
     private String tipo = "sequential";
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private PerfilUsuario perfilResponsavel;
+    @Column(nullable = false, length = 50)
+    private String perfilResponsavel;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)

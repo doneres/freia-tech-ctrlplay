@@ -1,6 +1,5 @@
 package br.com.ctrlplaygoiania.feiratech.dto;
 
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusEtapaAprovacao;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
@@ -16,7 +15,7 @@ public class EtapaAprovacaoDTO {
         private Integer ordem;
         private String nomeEtapa;
         private String tipo;
-        private PerfilUsuario perfilResponsavel;
+        private String perfilResponsavel;
         private StatusEtapaAprovacao status;
         private String motivo;
         private String dadosAnalise;

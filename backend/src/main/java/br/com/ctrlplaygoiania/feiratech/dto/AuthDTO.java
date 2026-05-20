@@ -1,9 +1,9 @@
 package br.com.ctrlplaygoiania.feiratech.dto;
 
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
 import java.util.UUID;
 
 public class AuthDTO {
@@ -22,7 +22,8 @@ public class AuthDTO {
         private UUID id;
         private String nome;
         private String email;
-        private PerfilUsuario perfil;
+        private String perfil;
+        private List<String> permissoes;
         private String telefone;
         private String fotoPerfil;
     }

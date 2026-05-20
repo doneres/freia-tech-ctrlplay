@@ -1,6 +1,5 @@
 package br.com.ctrlplaygoiania.feiratech.dto;
 
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public class UsuarioDTO {
@@ -32,8 +32,8 @@ public class UsuarioDTO {
         @Size(min = 8, message = "Senha deve ter no mínimo 8 caracteres")
         private String senha;
 
-        @NotNull(message = "Perfil é obrigatório")
-        private PerfilUsuario perfil;
+        @NotBlank(message = "Perfil é obrigatório")
+        private String perfil;
     }
 
     @Data
@@ -51,8 +51,8 @@ public class UsuarioDTO {
 
         private String senha;
 
-        @NotNull(message = "Perfil é obrigatório")
-        private PerfilUsuario perfil;
+        @NotBlank(message = "Perfil é obrigatório")
+        private String perfil;
     }
 
     @Data
@@ -98,8 +98,9 @@ public class UsuarioDTO {
         private String email;
         private String telefone;
         private String fotoPerfil;
-        private PerfilUsuario perfil;
+        private String perfil;
         private Boolean ativo;
+        private List<String> permissoes;
         private LocalDateTime createdAt;
     }
 }

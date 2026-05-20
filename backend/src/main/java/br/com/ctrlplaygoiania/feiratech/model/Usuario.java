@@ -1,6 +1,5 @@
 package br.com.ctrlplaygoiania.feiratech.model;
 
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -37,9 +36,8 @@ public class Usuario {
     @Column(nullable = false)
     private String senha;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 30)
-    private PerfilUsuario perfil;
+    @Column(nullable = false, length = 50)
+    private String perfil;
 
     @Column(nullable = false)
     private Boolean ativo = true;

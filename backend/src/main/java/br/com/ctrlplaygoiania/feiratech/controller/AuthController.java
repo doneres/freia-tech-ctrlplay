@@ -5,6 +5,7 @@ import br.com.ctrlplaygoiania.feiratech.dto.AuthDTO;
 import br.com.ctrlplaygoiania.feiratech.model.Usuario;
 import br.com.ctrlplaygoiania.feiratech.repository.UsuarioRepository;
 import br.com.ctrlplaygoiania.feiratech.security.JwtTokenProvider;
+import br.com.ctrlplaygoiania.feiratech.service.PerfilConfigService;
 import br.com.ctrlplaygoiania.feiratech.service.UsuarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,7 @@ public class AuthController {
     private final JwtTokenProvider tokenProvider;
     private final UsuarioRepository usuarioRepository;
     private final UsuarioService usuarioService;
+    private final PerfilConfigService perfilConfigService;
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthDTO.LoginResponse>> login(
@@ -45,6 +47,7 @@ public class AuthController {
                 .nome(usuario.getNome())
                 .email(usuario.getEmail())
                 .perfil(usuario.getPerfil())
+                .permissoes(perfilConfigService.listarPermissoesDoPerfilNome(usuario.getPerfil()))
                 .telefone(usuario.getTelefone())
                 .fotoPerfil(usuario.getFotoPerfil())
                 .build();

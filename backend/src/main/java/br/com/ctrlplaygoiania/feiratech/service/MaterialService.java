@@ -9,7 +9,6 @@ import br.com.ctrlplaygoiania.feiratech.model.ItemEstoque;
 import br.com.ctrlplaygoiania.feiratech.model.LinkCompra;
 import br.com.ctrlplaygoiania.feiratech.model.Material;
 import br.com.ctrlplaygoiania.feiratech.model.Projeto;
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusCompra;
 import br.com.ctrlplaygoiania.feiratech.repository.MaterialRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.ProjetoRepository;
@@ -241,7 +240,7 @@ public class MaterialService {
 
         switch (novoStatus) {
             case AGUARDANDO_APROVACAO ->
-                usuarioRepository.findByPerfil(PerfilUsuario.COORDENACAO).forEach(coord ->
+                usuarioRepository.findByPerfil("COORDENACAO").forEach(coord ->
                         emailService.notificarSolicitacaoCompra(coord.getEmail(), nomeProjeto, nomeItem));
             case APROVADO ->
                 emailService.notificarCompraAprovada(emailInstrutor, nomeProjeto, nomeItem);

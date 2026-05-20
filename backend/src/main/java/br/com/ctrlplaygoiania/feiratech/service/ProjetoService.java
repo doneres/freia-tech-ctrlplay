@@ -24,7 +24,7 @@ import br.com.ctrlplaygoiania.feiratech.model.ProjetoHistorico;
 import br.com.ctrlplaygoiania.feiratech.model.TipoEvento;
 import br.com.ctrlplaygoiania.feiratech.model.Usuario;
 import br.com.ctrlplaygoiania.feiratech.model.enums.NivelTurma;
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
+
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusCompra;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusEtapaAprovacao;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusProjeto;
@@ -223,7 +223,7 @@ public class ProjetoService {
             registrarHistorico(salvo, statusAnteriorSubmit, StatusProjeto.SUBMETIDO, "Projeto submetido para aprovação", null);
             String nomeInstrutor = projeto.getInstrutor().getNome();
             String nomeProjeto = projeto.getNomeProjeto();
-            usuarioRepository.findByPerfil(PerfilUsuario.COORDENACAO).forEach(coord ->
+            usuarioRepository.findByPerfil("COORDENACAO").forEach(coord ->
                     emailService.notificarProjetoSubmetido(coord.getEmail(), nomeProjeto, nomeInstrutor)
             );
             return toResponse(salvo);
@@ -288,7 +288,7 @@ public class ProjetoService {
             etapa.setOrdem(((Number) step.get("ordem")).intValue());
             etapa.setNomeEtapa((String) step.getOrDefault("nomeEtapa", "Etapa " + step.get("ordem")));
             etapa.setTipo((String) step.getOrDefault("tipo", "sequential"));
-            etapa.setPerfilResponsavel(PerfilUsuario.valueOf((String) step.get("perfilResponsavel")));
+            etapa.setPerfilResponsavel((String) step.get("perfilResponsavel"));
             etapa.setStatus(StatusEtapaAprovacao.PENDENTE);
             etapaAprovacaoRepository.save(etapa);
         }
@@ -402,7 +402,7 @@ public class ProjetoService {
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
                 .orElseThrow(() -> new BusinessException("Usuário autenticado não encontrado"));
 
-        if (usuario.getPerfil() == PerfilUsuario.INSTRUTOR) {
+        if ("INSTRUTOR".equals(usuario.getPerfil())) {
             if (!projeto.getInstrutor().getId().equals(usuario.getId())) {
                 throw new BusinessException("Você não tem permissão para vincular este projeto a um evento");
             }
@@ -413,8 +413,8 @@ public class ProjetoService {
                 throw new BusinessException("A submissão de projetos para este evento não está aberta");
             }
             projeto.setEvento(evento);
-        } else if (usuario.getPerfil() == PerfilUsuario.ADMINISTRADOR
-                || usuario.getPerfil() == PerfilUsuario.COORDENACAO) {
+        } else if ("ADMINISTRADOR".equals(usuario.getPerfil())
+                || "COORDENACAO".equals(usuario.getPerfil())) {
             Evento evento = eventoRepository.findById(eventoId)
                     .orElseThrow(() -> new ResourceNotFoundException("Evento", eventoId));
             projeto.setEvento(evento);
@@ -431,9 +431,9 @@ public class ProjetoService {
         Usuario usuario = usuarioRepository.findByEmail(emailUsuario)
                 .orElseThrow(() -> new BusinessException("Usuário autenticado não encontrado"));
 
-        if (usuario.getPerfil() == PerfilUsuario.ADMINISTRADOR) {
+        if ("ADMINISTRADOR".equals(usuario.getPerfil())) {
             // admin pode excluir qualquer projeto
-        } else if (usuario.getPerfil() == PerfilUsuario.INSTRUTOR) {
+        } else if ("INSTRUTOR".equals(usuario.getPerfil())) {
             if (!projeto.getInstrutor().getId().equals(usuario.getId())) {
                 throw new BusinessException("Você não tem permissão para excluir este projeto");
             }
@@ -520,7 +520,7 @@ public class ProjetoService {
     private Usuario buscarInstrutor(UUID instrutorId) {
         Usuario instrutor = usuarioRepository.findById(instrutorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário", instrutorId));
-        if (instrutor.getPerfil() != PerfilUsuario.INSTRUTOR) {
+        if (!"INSTRUTOR".equals(instrutor.getPerfil())) {
             throw new BusinessException("Apenas instrutores podem ser vinculados a projetos");
         }
         return instrutor;

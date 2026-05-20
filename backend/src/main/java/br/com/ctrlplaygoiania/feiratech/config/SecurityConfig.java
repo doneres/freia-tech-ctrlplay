@@ -139,6 +139,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/eventos/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
                         .requestMatchers(HttpMethod.PUT, "/api/eventos/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
                         .requestMatchers(HttpMethod.DELETE, "/api/eventos/**").hasAnyAuthority("ROLE_ADMINISTRADOR", "ROLE_COORDENACAO")
+                        // Perfis: todos autenticados podem listar, ADMIN pode criar/editar/deletar
+                        .requestMatchers(HttpMethod.GET, "/api/perfis/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/perfis/**").hasAuthority("ROLE_ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/perfis/**").hasAuthority("ROLE_ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PATCH, "/api/perfis/**").hasAuthority("ROLE_ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/perfis/**").hasAuthority("ROLE_ADMINISTRADOR")
                         // Agenda: todos autenticados
                         .requestMatchers(HttpMethod.GET, "/api/agenda/**").authenticated()
                         // Forum: só ADMIN pode fixar posts

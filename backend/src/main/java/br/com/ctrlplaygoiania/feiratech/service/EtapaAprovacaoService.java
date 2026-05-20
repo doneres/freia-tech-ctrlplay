@@ -8,7 +8,6 @@ import br.com.ctrlplaygoiania.feiratech.exception.ResourceNotFoundException;
 import br.com.ctrlplaygoiania.feiratech.model.EtapaAprovacao;
 import br.com.ctrlplaygoiania.feiratech.model.Projeto;
 import br.com.ctrlplaygoiania.feiratech.model.Usuario;
-import br.com.ctrlplaygoiania.feiratech.model.enums.PerfilUsuario;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusEtapaAprovacao;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusProjeto;
 import br.com.ctrlplaygoiania.feiratech.repository.EtapaAprovacaoRepository;
@@ -63,8 +62,8 @@ public class EtapaAprovacaoService {
         Usuario respondente = usuarioRepository.findByEmail(emailUsuario)
                 .orElseThrow(() -> new BusinessException("Usuário autenticado não encontrado"));
 
-        if (respondente.getPerfil() != etapa.getPerfilResponsavel()
-                && respondente.getPerfil() != PerfilUsuario.ADMINISTRADOR) {
+        if (!respondente.getPerfil().equals(etapa.getPerfilResponsavel())
+                && !respondente.getPerfil().equals("ADMINISTRADOR")) {
             throw new BusinessException("Você não tem permissão para responder esta etapa de aprovação");
         }
 
@@ -123,10 +122,9 @@ public class EtapaAprovacaoService {
     }
 
     void notificarAprovadoresDaEtapa(Projeto projeto, EtapaAprovacao etapa) {
-        usuarioRepository.findByPerfil(etapa.getPerfilResponsavel()).forEach(u ->
-                emailService.notificarEtapaAprovacaoPendente(
-                        u.getEmail(), projeto.getNomeProjeto(), etapa.getNomeEtapa())
-        );
+        usuarioRepository.findByPerfil(etapa.getPerfilResponsavel())
+                .forEach(u -> emailService.notificarEtapaAprovacaoPendente(
+                        u.getEmail(), projeto.getNomeProjeto(), etapa.getNomeEtapa()));
     }
 
     public EtapaAprovacaoDTO.Response toResponse(EtapaAprovacao e) {
