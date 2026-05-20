@@ -5,12 +5,12 @@ import {
   ArrowLeft, Loader2, CheckCircle, XCircle, Send, Trash2,
   ShoppingCart, X, Plus, Package, Cpu, Code2, Gamepad2, Paperclip,
   Search, ExternalLink, Pencil, FolderOpen, Globe, Video, Link as LinkIcon, Layers, PlayCircle, Flag,
-  CalendarDays,
+  CalendarDays, History, CheckCircle2, AlertCircle, ArrowRight,
 } from 'lucide-react';
 import {
   buscarProjeto, submeterProjeto, aprovarProjeto, reprovarProjeto,
   deletarProjeto, atualizarStatusSemana, iniciarAndamento, concluirProjeto,
-  vincularEvento,
+  vincularEvento, buscarHistoricoProjeto,
 } from '../api/projetos';
 import { responderEtapa } from '../api/projetos-etapas';
 import { listarEventos, listarEventosComSubmissaoAberta, type Evento } from '../api/eventos';
@@ -25,11 +25,11 @@ import {
 import { listarEstoque } from '../api/estoque';
 import { listarAcompanhamento, criarRegistro, deletarRegistro, type AcompanhamentoRequest } from '../api/acompanhamento';
 import { listarArquivos, criarArquivo, deletarArquivo, type ArquivoRequest } from '../api/arquivos';
-import type { Projeto, StatusSemana, StatusCompra, Material, ItemEstoque, TipoItemEstoque, PapelariaItem, RegistroAcompanhamento, ArquivoProjeto, FaseDesignThinking, TipoArquivo, EtapaAprovacao, StatusEtapaAprovacao, WorkflowStep, FormField } from '../types';
+import type { Projeto, StatusSemana, StatusCompra, Material, ItemEstoque, TipoItemEstoque, PapelariaItem, RegistroAcompanhamento, ArquivoProjeto, FaseDesignThinking, TipoArquivo, EtapaAprovacao, StatusEtapaAprovacao, WorkflowStep, FormField, ProjetoHistorico } from '../types';
 import StatusBadge from '../components/ui/StatusBadge';
 import { useAuth } from '../contexts/AuthContext';
 
-type Tab = 'geral' | 'proposta' | 'materiais' | 'papelaria' | 'cronograma' | 'arquivos';
+type Tab = 'geral' | 'proposta' | 'materiais' | 'papelaria' | 'cronograma' | 'arquivos' | 'historico';
 type MaterialMode = 'estoque' | 'compra';
 type PapelariaMode = 'estoque' | 'compra';
 
@@ -165,7 +165,7 @@ export default function ProjetoDetailPage() {
   const canEdit =
     (user?.perfil === 'ADMINISTRADOR' ||
       (user?.perfil === 'INSTRUTOR' && projeto?.instrutor?.id === user?.id)) &&
-    (projeto?.statusProjeto === 'RASCUNHO' || projeto?.statusProjeto === 'REPROVADO');
+    (projeto?.statusProjeto === 'RASCUNHO' || projeto?.statusProjeto === 'REPROVADO' || projeto?.statusProjeto === 'SUBMETIDO');
 
   if (isLoading || !projeto) {
     return (
@@ -182,6 +182,7 @@ export default function ProjetoDetailPage() {
     { key: 'papelaria', label: `Papelaria (${projeto.itensPapelaria?.length ?? 0})` },
     { key: 'cronograma', label: 'Cronograma' },
     { key: 'arquivos', label: 'Arquivos' },
+    { key: 'historico', label: 'Histórico' },
   ];
 
   return (
@@ -410,6 +411,7 @@ export default function ProjetoDetailPage() {
           isAdmin={user?.perfil === 'ADMINISTRADOR'}
         />
       )}
+      {activeTab === 'historico' && <TabHistorico projetoId={projeto.id} />}
 
       {/* Reprovar projeto modal */}
       {showReprovacaoModal && (
@@ -580,6 +582,102 @@ export default function ProjetoDetailPage() {
 }
 
 // ── Sub-componentes ──────────────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<string, string> = {
+  RASCUNHO: 'Rascunho', SUBMETIDO: 'Submetido', APROVADO: 'Aprovado',
+  REPROVADO: 'Reprovado', EM_ANDAMENTO: 'Em andamento', CONCLUIDO: 'Concluído',
+};
+const STATUS_COLORS: Record<string, string> = {
+  RASCUNHO: 'bg-gray-100 text-gray-600',
+  SUBMETIDO: 'bg-blue-100 text-blue-700',
+  APROVADO: 'bg-green-100 text-green-700',
+  REPROVADO: 'bg-red-100 text-red-700',
+  EM_ANDAMENTO: 'bg-amber-100 text-amber-700',
+  CONCLUIDO: 'bg-purple-100 text-purple-700',
+};
+
+function TabHistorico({ projetoId }: { projetoId: string }) {
+  const { data: historico = [], isLoading } = useQuery<ProjetoHistorico[]>({
+    queryKey: ['projeto-historico', projetoId],
+    queryFn: () => buscarHistoricoProjeto(projetoId),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 size={24} className="animate-spin text-brand-600" />
+      </div>
+    );
+  }
+
+  if (historico.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+          <History size={20} className="text-gray-400" />
+        </div>
+        <p className="text-sm font-medium text-gray-700">Nenhum registro no histórico</p>
+        <p className="text-xs text-gray-400 mt-1">As alterações de status aparecerão aqui</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {historico.map((entry) => (
+        <div key={entry.id} className="flex gap-3">
+          <div className="flex flex-col items-center">
+            <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+              {entry.statusNovo === 'APROVADO'
+                ? <CheckCircle2 size={14} className="text-green-600" />
+                : entry.statusNovo === 'REPROVADO'
+                ? <AlertCircle size={14} className="text-red-600" />
+                : <History size={14} className="text-brand-600" />
+              }
+            </div>
+            <div className="w-px flex-1 bg-gray-200 my-1" />
+          </div>
+          <div className="flex-1 bg-white border border-gray-200 rounded-xl p-3 mb-1">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <p className="text-sm font-semibold text-gray-900">{entry.descricao}</p>
+              <span className="text-[10px] text-gray-400 shrink-0 mt-0.5">
+                {new Date(entry.createdAt).toLocaleString('pt-BR', {
+                  day: '2-digit', month: '2-digit', year: 'numeric',
+                  hour: '2-digit', minute: '2-digit',
+                })}
+              </span>
+            </div>
+            {(entry.statusAnterior || entry.statusNovo) && (
+              <div className="flex items-center gap-1.5 mb-1.5">
+                {entry.statusAnterior && (
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[entry.statusAnterior] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {STATUS_LABELS[entry.statusAnterior] ?? entry.statusAnterior}
+                  </span>
+                )}
+                {entry.statusAnterior && entry.statusNovo && (
+                  <ArrowRight size={10} className="text-gray-400" />
+                )}
+                {entry.statusNovo && (
+                  <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[entry.statusNovo] ?? 'bg-gray-100 text-gray-600'}`}>
+                    {STATUS_LABELS[entry.statusNovo] ?? entry.statusNovo}
+                  </span>
+                )}
+              </div>
+            )}
+            {entry.justificativa && (
+              <p className="text-xs text-gray-600 italic border-l-2 border-red-200 pl-2 mt-1">
+                "{entry.justificativa}"
+              </p>
+            )}
+            {entry.nomeUsuario && (
+              <p className="text-[10px] text-gray-400 mt-1">por {entry.nomeUsuario}</p>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (

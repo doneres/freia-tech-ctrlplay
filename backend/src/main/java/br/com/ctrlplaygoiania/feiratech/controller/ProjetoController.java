@@ -3,6 +3,7 @@ package br.com.ctrlplaygoiania.feiratech.controller;
 import br.com.ctrlplaygoiania.feiratech.dto.ApiResponse;
 import br.com.ctrlplaygoiania.feiratech.dto.EtapaAprovacaoDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.ProjetoDTO;
+import br.com.ctrlplaygoiania.feiratech.dto.ProjetoHistoricoDTO;
 import br.com.ctrlplaygoiania.feiratech.model.enums.NivelTurma;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusProjeto;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusSemana;
@@ -110,6 +111,12 @@ public class ProjetoController {
             @AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(ApiResponse.ok(
                 projetoService.vincularEvento(id, request.getEventoId(), principal.getUsername())));
+    }
+
+    @GetMapping("/{id}/historico")
+    public ResponseEntity<ApiResponse<java.util.List<ProjetoHistoricoDTO.Response>>> listarHistorico(
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.ok(projetoService.listarHistorico(id)));
     }
 
     @GetMapping("/{id}/etapas")

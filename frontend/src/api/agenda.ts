@@ -17,6 +17,9 @@ export interface RecomendacaoAgenda {
   tarde: ProjetoAgendado[];
   naoAlocados: ProjetoAgendado[];
   itensSuperlotados: ItemSuperlotado[];
+  capacidadePorTurno: number | null;
+  qtdComputadores: number | null;
+  qtdMesas: number | null;
 }
 
 export async function buscarRecomendacao(): Promise<RecomendacaoAgenda> {

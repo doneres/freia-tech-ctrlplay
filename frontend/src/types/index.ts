@@ -254,6 +254,16 @@ export interface Projeto {
   updatedAt: string;
 }
 
+export interface ProjetoHistorico {
+  id: string;
+  statusAnterior: StatusProjeto | null;
+  statusNovo: StatusProjeto | null;
+  descricao: string | null;
+  justificativa: string | null;
+  nomeUsuario: string | null;
+  createdAt: string;
+}
+
 export interface MaterialPendente {
   id: string;
   item: string;

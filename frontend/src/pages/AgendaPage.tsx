@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Calendar, Clock, AlertTriangle, Package, Sun, Sunset, Info, Settings } from 'lucide-react';
+import { Calendar, Clock, AlertTriangle, Package, Sun, Sunset, Info, Settings, Monitor, Table2, CheckCircle2 } from 'lucide-react';
 import { buscarRecomendacao, type ProjetoAgendado } from '../api/agenda';
 import { buscarProximoEvento } from '../api/eventos';
 import StatusBadge from '../components/ui/StatusBadge';
@@ -140,6 +140,49 @@ export default function AgendaPage() {
         </div>
       ) : agenda ? (
         <>
+          {/* Event capacity info */}
+          {(agenda.capacidadePorTurno || agenda.qtdComputadores || agenda.qtdMesas) && (
+            <div className="flex flex-wrap gap-3 mb-5">
+              {agenda.capacidadePorTurno && (
+                <div className="flex items-center gap-2 bg-brand-50 border border-brand-100 rounded-xl px-3 py-2">
+                  <CheckCircle2 size={14} className="text-brand-600 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-brand-500 font-medium uppercase tracking-wide">Capacidade/turno</p>
+                    <p className="text-sm font-bold text-brand-800">{agenda.capacidadePorTurno} projetos</p>
+                  </div>
+                </div>
+              )}
+              {agenda.qtdComputadores && (
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                  <Monitor size={14} className="text-gray-500 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Computadores</p>
+                    <p className="text-sm font-bold text-gray-700">{agenda.qtdComputadores}</p>
+                  </div>
+                </div>
+              )}
+              {agenda.qtdMesas && (
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                  <Table2 size={14} className="text-gray-500 shrink-0" />
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">Mesas</p>
+                    <p className="text-sm font-bold text-gray-700">{agenda.qtdMesas}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Only approved projects info */}
+          {agenda.manha.length === 0 && agenda.tarde.length === 0 && agenda.naoAlocados.length === 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-5 flex items-center gap-3">
+              <Info size={16} className="text-blue-500 shrink-0" />
+              <p className="text-sm text-blue-700">
+                A agenda exibe apenas projetos <strong>aprovados</strong>. Aprove projetos submetidos para que apareçam aqui.
+              </p>
+            </div>
+          )}
+
           {/* Oversubscribed items warning */}
           {agenda.itensSuperlotados.length > 0 && (
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5">

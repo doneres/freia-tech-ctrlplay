@@ -1,5 +1,5 @@
 import api from './client';
-import type { ApiResponse, Projeto, ProjetoRequest, StatusSemana, NivelTurma, Turno, StatusProjeto } from '../types';
+import type { ApiResponse, Projeto, ProjetoRequest, StatusSemana, NivelTurma, Turno, StatusProjeto, ProjetoHistorico } from '../types';
 
 export interface ProjetoFilters {
   instrutorId?: string;
@@ -75,5 +75,10 @@ export async function concluirProjeto(id: string): Promise<Projeto> {
 
 export async function vincularEvento(projetoId: string, eventoId: string): Promise<Projeto> {
   const res = await api.patch<ApiResponse<Projeto>>(`/projetos/${projetoId}/vincular-evento`, { eventoId });
+  return res.data.data;
+}
+
+export async function buscarHistoricoProjeto(id: string): Promise<ProjetoHistorico[]> {
+  const res = await api.get<ApiResponse<ProjetoHistorico[]>>(`/projetos/${id}/historico`);
   return res.data.data;
 }

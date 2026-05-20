@@ -25,5 +25,8 @@ public class AgendaDTO {
         private List<ProjetoAgendado> tarde;
         private List<ProjetoAgendado> naoAlocados;
         private List<ItemSuperlotado> itensSuperlotados;
+        private Integer capacidadePorTurno;
+        private Integer qtdComputadores;
+        private Integer qtdMesas;
     }
 }

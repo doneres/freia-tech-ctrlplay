@@ -8,6 +8,7 @@ import br.com.ctrlplaygoiania.feiratech.dto.LinkCompraDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.MaterialDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.PapelariaItemDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.ProjetoDTO;
+import br.com.ctrlplaygoiania.feiratech.dto.ProjetoHistoricoDTO;
 import br.com.ctrlplaygoiania.feiratech.dto.UsuarioDTO;
 import br.com.ctrlplaygoiania.feiratech.exception.BusinessException;
 import br.com.ctrlplaygoiania.feiratech.exception.ResourceNotFoundException;
@@ -19,6 +20,7 @@ import br.com.ctrlplaygoiania.feiratech.model.LinkCompra;
 import br.com.ctrlplaygoiania.feiratech.model.Material;
 import br.com.ctrlplaygoiania.feiratech.model.PapelariaItem;
 import br.com.ctrlplaygoiania.feiratech.model.Projeto;
+import br.com.ctrlplaygoiania.feiratech.model.ProjetoHistorico;
 import br.com.ctrlplaygoiania.feiratech.model.TipoEvento;
 import br.com.ctrlplaygoiania.feiratech.model.Usuario;
 import br.com.ctrlplaygoiania.feiratech.model.enums.NivelTurma;
@@ -31,6 +33,7 @@ import br.com.ctrlplaygoiania.feiratech.model.enums.Turno;
 import br.com.ctrlplaygoiania.feiratech.repository.EtapaAprovacaoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.EventoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.FerramentaSoftwareRepository;
+import br.com.ctrlplaygoiania.feiratech.repository.ProjetoHistoricoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.ProjetoRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.UsuarioRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -39,6 +42,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -58,6 +64,7 @@ public class ProjetoService {
     private final EventoRepository eventoRepository;
     private final FerramentaSoftwareRepository ferramentaSoftwareRepository;
     private final EtapaAprovacaoRepository etapaAprovacaoRepository;
+    private final ProjetoHistoricoRepository projetoHistoricoRepository;
     private final ItemEstoqueService itemEstoqueService;
     private final EmailService emailService;
     private final EventoService eventoService;
@@ -126,10 +133,16 @@ public class ProjetoService {
                     "Projeto com status " + projeto.getStatusProjeto() + " não pode ser editado");
         }
 
-        // Projeto reprovado volta a RASCUNHO ao ser editado para poder ser submetido novamente
-        if (projeto.getStatusProjeto() == StatusProjeto.REPROVADO) {
+        StatusProjeto statusAnterior = projeto.getStatusProjeto();
+
+        // Projeto reprovado ou submetido volta a RASCUNHO ao ser editado
+        if (projeto.getStatusProjeto() == StatusProjeto.REPROVADO
+                || projeto.getStatusProjeto() == StatusProjeto.SUBMETIDO) {
             projeto.setStatusProjeto(StatusProjeto.RASCUNHO);
             projeto.setJustificativaReprovacao(null);
+            projeto.setDataSubmissao(null);
+            projeto.getEtapas().clear();
+            projeto.setEtapaAtualOrdem(null);
         }
 
         mapRequestToProjeto(dto, projeto);
@@ -148,7 +161,23 @@ public class ProjetoService {
                     .forEach(projeto.getMateriais()::add);
         }
 
-        return toResponse(projetoRepository.save(projeto));
+        Projeto salvo = projetoRepository.save(projeto);
+
+        if (statusAnterior != StatusProjeto.RASCUNHO) {
+            registrarHistorico(salvo, statusAnterior, StatusProjeto.RASCUNHO,
+                    "Projeto editado — retornou para rascunho", null);
+        }
+
+        return toResponse(salvo);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProjetoHistoricoDTO.Response> listarHistorico(UUID projetoId) {
+        buscarEntidadePorId(projetoId);
+        return projetoHistoricoRepository.findByProjetoIdOrderByCreatedAtAsc(projetoId)
+                .stream()
+                .map(this::toHistoricoResponse)
+                .toList();
     }
 
     @Transactional
@@ -159,6 +188,8 @@ public class ProjetoService {
                 && projeto.getStatusProjeto() != StatusProjeto.REPROVADO) {
             throw new BusinessException("Apenas projetos em RASCUNHO ou REPROVADO podem ser submetidos");
         }
+
+        StatusProjeto statusAnteriorSubmit = projeto.getStatusProjeto();
 
         TipoEvento tipoEvento = projeto.getEvento() != null ? projeto.getEvento().getTipoEvento() : null;
         boolean legado = tipoEvento == null || Boolean.TRUE.equals(tipoEvento.getUsaFormularioLegado());
@@ -184,10 +215,12 @@ public class ProjetoService {
         if (!legado && tipoEvento.getWorkflowConfig() != null) {
             projeto.setSchemaVersion(tipoEvento.getSchemaVersion());
             Projeto salvo = projetoRepository.save(projeto);
+            registrarHistorico(salvo, statusAnteriorSubmit, StatusProjeto.SUBMETIDO, "Projeto submetido para aprovação", null);
             iniciarWorkflow(salvo, tipoEvento);
             return toResponse(salvo);
         } else {
             Projeto salvo = projetoRepository.save(projeto);
+            registrarHistorico(salvo, statusAnteriorSubmit, StatusProjeto.SUBMETIDO, "Projeto submetido para aprovação", null);
             String nomeInstrutor = projeto.getInstrutor().getNome();
             String nomeProjeto = projeto.getNomeProjeto();
             usuarioRepository.findByPerfil(PerfilUsuario.COORDENACAO).forEach(coord ->
@@ -281,6 +314,8 @@ public class ProjetoService {
         projeto.setStatusProjeto(StatusProjeto.APROVADO);
         Projeto salvo = projetoRepository.save(projeto);
 
+        registrarHistorico(salvo, StatusProjeto.SUBMETIDO, StatusProjeto.APROVADO, "Projeto aprovado", null);
+
         emailService.notificarProjetoAprovado(
                 projeto.getInstrutor().getEmail(), projeto.getNomeProjeto());
 
@@ -301,6 +336,7 @@ public class ProjetoService {
 
         projeto.setStatusProjeto(StatusProjeto.REPROVADO);
         projeto.setJustificativaReprovacao(justificativa);
+        projeto.setDataSubmissao(null);
 
         projeto.getMateriais().stream()
                 .filter(m -> m.getStatusCompra() == StatusCompra.AGUARDANDO_APROVACAO)
@@ -311,6 +347,8 @@ public class ProjetoService {
                 .forEach(p -> p.setStatusAquisicao(StatusCompra.A_COMPRAR));
 
         Projeto salvo = projetoRepository.save(projeto);
+
+        registrarHistorico(salvo, StatusProjeto.SUBMETIDO, StatusProjeto.REPROVADO, "Projeto reprovado", justificativa);
 
         emailService.notificarProjetoReprovado(
                 projeto.getInstrutor().getEmail(), projeto.getNomeProjeto(), justificativa);
@@ -325,7 +363,9 @@ public class ProjetoService {
             throw new BusinessException("Apenas projetos APROVADOS podem ser iniciados");
         }
         projeto.setStatusProjeto(StatusProjeto.EM_ANDAMENTO);
-        return toResponse(projetoRepository.save(projeto));
+        Projeto salvo = projetoRepository.save(projeto);
+        registrarHistorico(salvo, StatusProjeto.APROVADO, StatusProjeto.EM_ANDAMENTO, "Projeto em andamento na feira", null);
+        return toResponse(salvo);
     }
 
     @Transactional
@@ -335,7 +375,9 @@ public class ProjetoService {
             throw new BusinessException("Apenas projetos EM_ANDAMENTO podem ser concluídos");
         }
         projeto.setStatusProjeto(StatusProjeto.CONCLUIDO);
-        return toResponse(projetoRepository.save(projeto));
+        Projeto salvo = projetoRepository.save(projeto);
+        registrarHistorico(salvo, StatusProjeto.EM_ANDAMENTO, StatusProjeto.CONCLUIDO, "Projeto concluído", null);
+        return toResponse(salvo);
     }
 
     @Transactional
@@ -411,6 +453,36 @@ public class ProjetoService {
                 });
 
         projetoRepository.delete(projeto);
+    }
+
+    // ── Histórico ─────────────────────────────────────────────────────────────
+
+    private void registrarHistorico(Projeto projeto, StatusProjeto anterior, StatusProjeto novo, String descricao, String justificativa) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Usuario usuario = null;
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+            usuario = usuarioRepository.findByEmail(auth.getName()).orElse(null);
+        }
+        ProjetoHistorico h = new ProjetoHistorico();
+        h.setProjeto(projeto);
+        h.setStatusAnterior(anterior);
+        h.setStatusNovo(novo);
+        h.setDescricao(descricao);
+        h.setJustificativa(justificativa);
+        h.setUsuarioResponsavel(usuario);
+        projetoHistoricoRepository.save(h);
+    }
+
+    private ProjetoHistoricoDTO.Response toHistoricoResponse(ProjetoHistorico h) {
+        return ProjetoHistoricoDTO.Response.builder()
+                .id(h.getId())
+                .statusAnterior(h.getStatusAnterior())
+                .statusNovo(h.getStatusNovo())
+                .descricao(h.getDescricao())
+                .justificativa(h.getJustificativa())
+                .nomeUsuario(h.getUsuarioResponsavel() != null ? h.getUsuarioResponsavel().getNome() : null)
+                .createdAt(h.getCreatedAt())
+                .build();
     }
 
     // ── Helpers privados ──────────────────────────────────────────────────────
