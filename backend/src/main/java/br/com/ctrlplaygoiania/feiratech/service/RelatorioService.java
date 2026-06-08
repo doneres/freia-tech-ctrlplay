@@ -4,6 +4,7 @@ import br.com.ctrlplaygoiania.feiratech.model.ItemEstoque;
 import br.com.ctrlplaygoiania.feiratech.model.Material;
 import br.com.ctrlplaygoiania.feiratech.model.Projeto;
 import br.com.ctrlplaygoiania.feiratech.model.enums.StatusCompra;
+import br.com.ctrlplaygoiania.feiratech.model.enums.StatusProjeto;
 import br.com.ctrlplaygoiania.feiratech.repository.ItemEstoqueRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.MaterialRepository;
 import br.com.ctrlplaygoiania.feiratech.repository.ProjetoRepository;
@@ -71,13 +72,15 @@ public class RelatorioService {
     @Transactional(readOnly = true)
     public byte[] relatorioProjetos() {
         List<Projeto> projetos = projetoRepository.findAll()
-                .stream().sorted(Comparator.comparing(Projeto::getCreatedAt).reversed())
+                .stream()
+                .filter(p -> p.getStatusProjeto() != StatusProjeto.RASCUNHO)
+                .sorted(Comparator.comparing(Projeto::getCreatedAt).reversed())
                 .toList();
 
         try (XSSFWorkbook wb = new XSSFWorkbook()) {
             Sheet sheet = wb.createSheet("Projetos");
             preencherSheetProjetos(wb, sheet, projetos);
-            autoSize(sheet, 13);
+            autoSize(sheet, 16);
             return toBytes(wb);
         } catch (IOException e) {
             throw new RuntimeException("Erro ao gerar relatório de projetos", e);
@@ -89,9 +92,12 @@ public class RelatorioService {
     @Transactional(readOnly = true)
     public byte[] relatorioProjetosPorInstrutor() {
         List<Projeto> projetos = projetoRepository.findAll()
-                .stream().sorted(Comparator
+                .stream()
+                .filter(p -> p.getStatusProjeto() != StatusProjeto.RASCUNHO)
+                .filter(p -> p.getInstrutor() != null)
+                .sorted(Comparator
                         .comparing((Projeto p) -> p.getInstrutor().getNome())
-                        .thenComparing(Projeto::getCreatedAt).reversed())
+                        .thenComparing(Comparator.comparing(Projeto::getCreatedAt).reversed()))
                 .toList();
 
         try (XSSFWorkbook wb = new XSSFWorkbook()) {
@@ -106,7 +112,7 @@ public class RelatorioService {
                                 .filter(p -> p.getInstrutor().getNome().equals(nome))
                                 .toList();
                         preencherSheetProjetos(wb, sheet, doInstrutor);
-                        autoSize(sheet, 13);
+                        autoSize(sheet, 16);
                     });
             return toBytes(wb);
         } catch (IOException e) {
@@ -144,7 +150,7 @@ public class RelatorioService {
         try (XSSFWorkbook wb = new XSSFWorkbook()) {
             Sheet sheet = wb.createSheet("Meus Projetos");
             preencherSheetProjetos(wb, sheet, projetos);
-            autoSize(sheet, 13);
+            autoSize(sheet, 16);
             return toBytes(wb);
         } catch (IOException e) {
             throw new RuntimeException("Erro ao gerar relatório de meus projetos", e);
@@ -177,7 +183,8 @@ public class RelatorioService {
         CellStyle header = headerStyle(wb);
         String[] cols = {"Nome do Projeto", "Instrutor", "Turma", "Turno", "Nível",
                 "Qtd Alunos", "Status", "Semana 1", "Semana 2", "Semana 3",
-                "Semana 4", "Tipo", "Criado em"};
+                "Semana 4", "Tipo", "Criado em",
+                "Problema Identificado", "Solução Proposta", "Objetivo do Projeto"};
         criarCabecalho(sheet, header, cols);
 
         int row = 1;
@@ -196,6 +203,9 @@ public class RelatorioService {
             set(r, 10, p.getStatusS4() != null ? p.getStatusS4().name() : "");
             set(r, 11, p.getTipoProjeto() != null ? p.getTipoProjeto().name() : "");
             set(r, 12, p.getCreatedAt() != null ? p.getCreatedAt().format(FMT) : "");
+            set(r, 13, p.getProblemaIdentificado());
+            set(r, 14, p.getSolucaoProposta());
+            set(r, 15, p.getObjetivoProjeto());
         }
     }
 
